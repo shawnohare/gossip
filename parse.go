@@ -2,110 +2,10 @@ package gossip
 
 import (
 	"errors"
+	"log"
 	"strings"
-	// "regexp"
 	"unicode/utf8"
 )
-
-const (
-	ErrorMalformedQuery    = "Search query is malformed: "
-	ErrorUnpairedQuotation = ErrorMalformedQuery + "Unpaired quotation mark."
-	ErrorUnpairedBracket   = ErrorMalformedQuery + "Unpaired bracket."
-)
-
-// Define special characters used when parsing a raw search query.
-const (
-	space    rune = 0x00000020
-	quote    rune = 0x00000022
-	at       rune = 0x00000040
-	plus     rune = 0x0000002b
-	minus    rune = 0x0000002d
-	lparen   rune = 0x00000028
-	rparen   rune = 0x00000029
-	lbracket rune = 0x0000005b
-	rbracket rune = 0x0000005d
-	escape   rune = 0x0000005c // reverse solidus, \
-)
-
-// Define modal verbs.
-const (
-	VerbError int = -2
-	Should    int = 0
-	MustNot   int = int(minus)
-	Must      int = int(plus)
-)
-
-// lookBehindCheck inspects the provided string and compares the last
-// rune to the input rune, to determine whether the pair is valid.
-// The current rune is assumed to be marked as a control.  For instance,
-// it is the the left quotation mark in a pair, the left bracket (or +, -)
-// outside of a string literal, etc.
-func lookBehindCheck(before string, current rune) bool {
-	prev, w := utf8.DecodeLastRuneInString(before)
-
-	// Valid the current rune is the initial
-	if w == 0 {
-		return true
-	}
-	if prev == current {
-		return false
-	}
-
-	if prev == space ||
-		prev == lbracket ||
-		prev == quote ||
-		prev == minus ||
-		prev == plus {
-		return true
-	}
-	return false
-
-}
-
-// indexUnescapedRune reports the index of the next rune matching the input
-// that is not preceeded by an unescaped escape character.
-//
-// For instance, if r is the quotation mark rune, and
-// s := `phrase with double escape \\"`, then the f(s, r) = len(s)-1,
-// where f is this function.
-func indexUnescapedRune(s string, r rune) int {
-	for i, ri := range s {
-		if ri == r {
-			b, w := utf8.DecodeLastRuneInString(s[:i])
-			if b != escape {
-				return i
-			}
-
-			// If the escape is itself escaped, report the current match.
-			j := i - w
-			if j >= 0 {
-				b, _ := utf8.DecodeLastRuneInString(s[:j])
-				if b == escape {
-					return i
-				}
-			}
-		}
-	}
-
-	return -1
-}
-
-// RemoveEscapes replaces occurrences of \R with R, where R is any rune.
-func RemoveEscapes(s string) string {
-	var (
-		s0   []rune
-		prev rune
-	)
-
-	for _, r := range s {
-		if r != escape || prev == escape {
-			s0 = append(s0, r)
-		}
-		prev = r
-	}
-
-	return string(s0)
-}
 
 // Parse recursively converts a raw text search into a
 // structured query tree.  The produced tree, represented by the returned
@@ -131,15 +31,22 @@ func Parse(s string) (*Tree, error) {
 			if i >= len(s)-1 {
 				return nil, errors.New(ErrorUnpairedQuotation)
 			}
-			j := indexUnescapedRune(s[i:], quote)
+			// FIXME: remove comments
+			// j := indexUnescapedRune(s[i:], quote)
+			j := strings.Index(s[i:], `"`)
+			// j := indexRune(s[i:], quote)
 			if j == -1 {
 				return nil, errors.New(ErrorUnpairedQuotation)
 			}
 			j += i // point j to loc in s of matched quotation mark
 
+			// FIXME:
+			log.Println("start:end of quotes", i-width, j)
+			log.Println("Phrase for phrae query:", s[i:j])
+
 			q := &Node{
 				verb:   currVerb,
-				phrase: RemoveEscapes(s[i:j]),
+				phrase: s[i:j],
 			}
 			root.AddChild(q)
 
@@ -159,12 +66,12 @@ func Parse(s string) (*Tree, error) {
 			// Create a nested subquery by recursively calling function on the
 			// the substring
 			// TODO replace with custom index func.
-			j := indexUnescapedRune(s[i:], lbracket)
+			j := indexNonPhraseRune(s[i:], lbracket)
 			if j == -1 {
 				return nil, errors.New(ErrorUnpairedBracket)
 			}
 
-			subTree, err := Parse(s[i:j])
+			subTree, err := Parse(s[i : j+i])
 			if err != nil {
 				return nil, err
 			}
@@ -184,14 +91,20 @@ func Parse(s string) (*Tree, error) {
 			i += width
 
 		default:
-			// No special marks detected.  Search for next space or end of query.
-			j := strings.Index(s[i:], " ")
+			// No special marks detected.  Search for next space.
+			r, j := nextReserved(s[i:])
 			if j == -1 {
 				j = len(s)
+			} else {
+				j += i
+			}
+			// Error on words that contain reserved characters such as `word1[word2`.
+			if r != space {
+				return nil, errors.New(ErrorUnexpectedReservedRune)
 			}
 			q := &Node{verb: currVerb, phrase: s[i:j]}
 			root.AddChild(q)
-			i += j + 1 // space has width 1
+			i = j + 1
 		}
 	}
 
