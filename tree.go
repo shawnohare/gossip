@@ -21,6 +21,13 @@ func (t *Tree) String() string {
 	return t.src
 }
 
+// Equals reports whether the trees are semantically equivalent.
+// In particular, it is a poset isomorphism with respect to the
+// total ordering on phrases induced by the source query.
+func (t *Tree) Equals(r *Tree) bool {
+	return t.Root().Equals(r.Root())
+}
+
 // leaves is a tail recursive function that computes the leaves of a tree.
 func leaves(children []*Node, current []*Node) []*Node {
 	if len(children) == 0 {
