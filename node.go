@@ -26,6 +26,11 @@ func (n *Node) IsValid() bool {
 	if n == nil {
 		return false
 	}
+
+	if !n.IsLeaf() && n.phrase != "" {
+		return false
+	}
+
 	if n.IsLeaf() && n.phrase == "" {
 		return false
 	}
@@ -91,6 +96,13 @@ func (n *Node) Children() []*Node {
 	return n.children
 }
 
+func (n *Node) Phrase() string {
+	if n.IsValid() {
+		return n.phrase
+	}
+	return ""
+}
+
 // Verb returns the integer code the the modal verb attached to the node.
 // If the node is
 func (n *Node) Verb() int {
@@ -98,4 +110,28 @@ func (n *Node) Verb() int {
 		return n.verb
 	}
 	return VerbError
+}
+
+// Equals reports whether the instance and input define semantically
+// equal parsed subtrees.
+func (n *Node) Equals(m *Node) bool {
+	if !n.IsValid() || !m.IsValid() {
+		return false
+	}
+
+	if len(n.children) != len(m.children) {
+		return false
+	}
+
+	if n.IsLeaf() && m.IsLeaf() {
+		return n.phrase == m.phrase && n.verb == m.verb
+	}
+
+	ok := true
+	for i, ni := range n.children {
+		if !ni.Equals(m.children[i]) {
+			return false
+		}
+	}
+	return ok
 }
