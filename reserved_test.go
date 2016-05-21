@@ -17,12 +17,12 @@ func TestNextReservedRune(t *testing.T) {
 		{"", utf8.RuneError, -1},
 		{"anything", utf8.RuneError, -1},
 		{"日本語", utf8.RuneError, -1},
-		{"[", lbracket, 0},
-		{"0]2", rbracket, 1},
-		{`0"`, quote, 1},
-		{`0+"567+"`, plus, 1},
-		{`0-"567+"`, minus, 1},
-		{`0123 "`, space, 4},
+		{"[", LeftBracket, 0},
+		{"0]2", RightBracket, 1},
+		{`0"`, Quote, 1},
+		{`0+"567+"`, Plus, 1},
+		{`0-"567+"`, Minus, 1},
+		{`0123 "`, Space, 4},
 	}
 
 	for i, tt := range tests {
@@ -34,71 +34,109 @@ func TestNextReservedRune(t *testing.T) {
 
 }
 
-func TestLookBehindCheck(t *testing.T) {
+// Checks when the reserved rune is the last element of the search.
+func TestCheckReservedRuneWhenLast(t *testing.T) {
+	tests := []struct {
+		in  rune
+		out bool
+	}{
+		{Plus, false},
+		{Minus, false},
+		{Quote, false},
+		{LeftBracket, false},
+		{RightBracket, true},
+		{Space, true},
+	}
+
+	for i, tt := range tests {
+		msg := fmt.Sprintf("Fails test case (%d) %#v", i, tt)
+		// Effectively replace the _ with the current rune.
+		actual := checkReserved(" _", tt.in, 1, 1)
+		assert.Equal(t, tt.out, actual, msg)
+	}
+
+}
+
+// Checks when the reserved rune is the only element of the search string.
+func TestCheckReservedSingleton(t *testing.T) {
+	tests := []struct {
+		in  rune
+		out bool
+	}{
+		{Plus, false},
+		{Minus, false},
+		{Quote, false},
+		{LeftBracket, false},
+		{RightBracket, false},
+		{Space, true},
+	}
+
+	for i, tt := range tests {
+		msg := fmt.Sprintf("Fails test case (%d) %#v", i, tt)
+		// Effectively replace the _ with the current rune.
+		actual := checkReserved("_", tt.in, 0, 1)
+		assert.Equal(t, tt.out, actual, msg)
+	}
+
+}
+
+// These tests assume the string to parse looks like before + rune + *
+// where * is a non-empty string.  In particular the rune to check is
+// never last.
+func TestCheckReservedLookBehindNotLast(t *testing.T) {
 	tests := []struct {
 		before  string
 		current rune
 		out     bool
 	}{
 		// current = plus
-		{"+", plus, false},
-		{"-", plus, false},
-		{`"`, plus, false},
-		{"[", plus, true},
-		{"]", plus, false},
-		{" ", plus, true},
-		{"+d", plus, false},
-		{"", plus, true},
+		{"+", Plus, false},
+		{"-", Plus, false},
+		{`"`, Plus, false},
+		{"[", Plus, true},
+		{"]", Plus, false},
+		{" ", Plus, true},
 		// current = minus
-		{"+", minus, false},
-		{"-", minus, false},
-		{`"`, minus, false},
-		{"[", minus, true},
-		{"]", minus, false},
-		{" ", minus, true},
-		{"+d", minus, false},
-		{"", minus, true},
+		{"+", Minus, false},
+		{"-", Minus, false},
+		{`"`, Minus, false},
+		{"[", Minus, true},
+		{"]", Minus, false},
+		{" ", Minus, true},
 		// current = quote
-		{"+", quote, true},
-		{"-", quote, true},
-		{`"`, quote, true},
-		{"[", quote, true},
-		{"]", quote, false},
-		{" ", quote, true},
-		{"+d", quote, false},
-		{"", quote, true},
+		{"+", Quote, true},
+		{"-", Quote, true},
+		{`"`, Quote, true},
+		{"[", Quote, true},
+		{"]", Quote, false},
+		{" ", Quote, true},
 		// current = left bracket
-		{"+", lbracket, true},
-		{"-", lbracket, true},
-		{`"`, lbracket, false},
-		{"[", lbracket, true},
-		{"]", lbracket, false},
-		{" ", lbracket, true},
-		{"+d", lbracket, false},
-		{"", lbracket, true},
+		{"+", LeftBracket, true},
+		{"-", LeftBracket, true},
+		{`"`, LeftBracket, false},
+		{"[", LeftBracket, true},
+		{"]", LeftBracket, false},
+		{" ", LeftBracket, true},
 		// current = rbracket
-		{"+", rbracket, false},
-		{"-", rbracket, false},
-		{`"`, rbracket, true},
-		{"[", rbracket, true},
-		{"]", rbracket, true},
-		{" ", rbracket, true},
-		{"+d", rbracket, true},
-		{"", rbracket, true},
+		{"+", RightBracket, false},
+		{"-", RightBracket, false},
+		{`"`, RightBracket, true},
+		{"[", RightBracket, true},
+		{"]", RightBracket, true},
+		{" ", RightBracket, true},
 		// current = space
-		{"+", space, false},
-		{"-", space, false},
-		{`"`, space, true},
-		{"[", space, true},
-		{"]", space, true},
-		{" ", space, true},
-		{"+d", space, true},
-		{"", space, true},
+		{"+", Space, false},
+		{"-", Space, false},
+		{`"`, Space, true},
+		{"[", Space, true},
+		{"]", Space, true},
+		{" ", Space, true},
 	}
 
 	for i, tt := range tests {
 		msg := fmt.Sprintf("Fails test case (%d) %#v", i, tt)
-		actual := lookBehindCheck(tt.before, tt.current)
+		// Effectively replace the first _ with the current rune.
+		actual := checkReserved(tt.before+"__", tt.current, 1, 1)
 		assert.Equal(t, tt.out, actual, msg)
 	}
 
@@ -114,14 +152,14 @@ func TestIndexNonPhraseRune(t *testing.T) {
 	}{
 		{"", 0, -1},
 		{"anything", r0, -1},
-		{"", quote, -1},
-		{"[", rbracket, -1},
-		{`"\"`, escape, -1},
-		{`012\"`, escape, 3}, // 5
-		{`0123"567+"`, plus, -1},
-		{`0123"`, quote, 4},
-		{`0123"567+"`, plus, -1},
-		{`w "[]"`, lbracket, -1},
+		{"", Quote, -1},
+		{"[", RightBracket, -1},
+		{`"\"`, Escape, -1},
+		{`012\"`, Escape, 3}, // 5
+		{`0123"567+"`, Plus, -1},
+		{`0123"`, Quote, 4},
+		{`0123"567+"`, Plus, -1},
+		{`w "[]"`, LeftBracket, -1},
 		{"日本語", r1, 6}, // 10
 	}
 

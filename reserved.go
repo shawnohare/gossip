@@ -1,38 +1,33 @@
 package gossip
 
-import "unicode/utf8"
-
-// Define modal verbs.
-const (
-	VerbError int = -2
-	Should    int = 0
-	MustNot   int = int(minus)
-	Must      int = int(plus)
+import (
+	"strings"
+	"unicode/utf8"
 )
 
-// Define special characters used when parsing a raw search query.
+// Runes that have some special meaning.  Currently, Plus (+), Minus (i)
 const (
-	space    rune = 0x00000020
-	quote    rune = 0x00000022
-	at       rune = 0x00000040
-	plus     rune = 0x0000002b
-	minus    rune = 0x0000002d
-	lparen   rune = 0x00000028
-	rparen   rune = 0x00000029
-	lbracket rune = 0x0000005b
-	rbracket rune = 0x0000005d
-	escape   rune = 0x0000005c // reverse solidus, \
+	Space        rune = 0x00000020 // reserved
+	Quote        rune = 0x00000022 // reserved
+	Plus         rune = 0x0000002b // reserved
+	Minus        rune = 0x0000002d // reserved
+	LeftBracket  rune = 0x0000005b // reserved
+	RightBracket rune = 0x0000005d // reserved
+	LeftParen    rune = 0x00000028
+	RightParen   rune = 0x00000029
+	At           rune = 0x00000040
+	Escape       rune = 0x0000005c // reverse solidus, \
 )
 
 var empty struct{}
 
 var reservedRuneLookup map[rune]struct{} = map[rune]struct{}{
-	space:    empty,
-	quote:    empty,
-	plus:     empty,
-	minus:    empty,
-	lbracket: empty,
-	rbracket: empty,
+	Space:        empty,
+	Quote:        empty,
+	Plus:         empty,
+	Minus:        empty,
+	LeftBracket:  empty,
+	RightBracket: empty,
 }
 
 func isRuneReserved(r rune) bool {
@@ -52,58 +47,76 @@ func nextReserved(s string) (rune, int) {
 	return utf8.RuneError, -1
 }
 
-// lookBehindCheck inspects the provided string and compares the last
-// rune to the input rune, to determine whether the pair is valid.
-// The current rune is assumed to be outside of a phrase literal.
-func lookBehindCheck(before string, current rune) bool {
-	prev, w := utf8.DecodeLastRuneInString(before)
-	// Matrix of acceptable combinations. Current control rune on top.
-	// Previous rune on left.  Here _ is a space and r any non-reserved rune.
-	//    +-  "  [  ]  _
-	// +-  x  o  o  x  x
-	//  "  x  ?  x  o  o
-	//  [  o  o  o  ?  o
-	//  ]  x  x  x  o  ?
-	//  _  o  o  o  o  o
-	//  r  x  x  x  o  o
-
-	// Valid the current rune is the initial or preceeded by space.
-	// This will make multiple spaces acceptable inputs.
-	if w == 0 {
-		return true
+// checkReserved determiens if a reserved rune is in a valid sequence.
+// Matrix of acceptable (prev, curr) rune pairs. Current control rune on top.
+// Previous rune on left.  Here _ is a space and r any non-reserved rune.
+//    +-  "  [  ]  _
+// +-  x  o  o  x  x
+//  "  x  ?  x  o  o
+//  [  o  o  o  ?  o
+//  ]  x  x  x  o  ?
+//  _  o  o  o  o  o
+//  r  x  x  x  o  o
+//
+// Most reserved runes can be the initial but not terminal rune in the string.
+func checkReserved(s string, r rune, loc int, width int) bool {
+	if loc < 0 || len(s) <= loc {
+		return false
 	}
 
-	// TODO finish all cases.  Also, need to consider exactly when this func
-	// is called. Presumably any time outside of a phrase literal.
+	prev, w := utf8.DecodeLastRuneInString(s[:loc])
+	first := w == 0
+	last := loc+width >= len(s)
+
 	var ok bool
-	switch current {
-	case plus, minus:
-		ok = prev == lbracket || prev == space
-	case quote:
-		ok = isRuneReserved(prev) && prev != rbracket
-	case lbracket:
-		ok = isRuneReserved(prev) && prev != quote && prev != rbracket
-	case rbracket, space:
-		ok = prev != plus && prev != minus
+	switch r {
+	case Plus, Minus:
+		ok = !last && (first || prev == LeftBracket || prev == Space)
+	case Quote:
+		ok = !last && (first || (isRuneReserved(prev) && prev != RightBracket))
+	case LeftBracket:
+		ok = !last && (first || (isRuneReserved(prev) && prev != Quote && prev != RightBracket))
+	case RightBracket:
+		ok = !first && prev != utf8.RuneError && prev != Plus && prev != Minus
+	case Space:
+		ok = prev != Plus && prev != Minus
 	}
 
 	return ok
 
 }
 
-// indexNonPhraseRune reports the index of the next rune matching the input
 // that is not contained in a phrase literal.  For instance,
 // if s = `[word1 "phrase with brackets[]" word2]` and r = `]`, then
 // the index returned is len(s)-1.
 func indexNonPhraseRune(s string, r rune) int {
 	inLiteral := false
+	var i int
+	for i < len(s) {
+		ri, w := utf8.DecodeRuneInString(s[i:]) // Get next rune
+		if ri == r {
+			return i
+		}
+
+		i += w
+
+		// If we see a quotation, find the matching mark and resume the search.
+		if ri == Quote && i < len(s) {
+			j := strings.IndexRune(s[i:], Quote)
+			if j == -1 {
+				return -1
+			}
+			i += j
+		}
+
+	}
 	for i, ri := range s {
 		// Only match if we are not in a phrase literal.
 		if !inLiteral && ri == r {
 			return i
 		}
 		// Toggle inLiteral when we see quotation marks.
-		if ri == quote {
+		if ri == Quote {
 			inLiteral = !inLiteral
 		}
 	}
@@ -111,20 +124,10 @@ func indexNonPhraseRune(s string, r rune) int {
 	return -1
 }
 
-// FIXME: remove?
-// RemoveEscapes replaces occurrences of \R with R, where R is any rune.
-// func RemoveEscapes(s string) string {
-// 	var (
-// 		s0   []rune
-// 		prev rune
-// 	)
-
-// 	for _, r := range s {
-// 		if r != escape || prev == escape {
-// 			s0 = append(s0, r)
-// 		}
-// 		prev = r
-// 	}
-
-// 	return string(s0)
+// Index reports the index of the next control rune or -1 if the rune is not
+// present in the input string.  Runes inside phrase literals are ignored.
+// ocurrence of r outside of a phrase literal.  For example,
+//   Index(`"+" +`, Plus) = 4.
+// func Index(s string, r rune) int {
+// 	// TODO
 // }
