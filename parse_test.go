@@ -7,6 +7,75 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestParsePasses(t *testing.T) {
+	// All the tests should pass.
+	tests := []struct {
+		in  string
+		out *Tree
+	}{
+		{"w", &Tree{&Node{phrase: "w"}}},
+		{
+			`+"machine learning"`,
+			&Tree{
+				root: &Node{verb: Must, phrase: "machine learning"},
+			},
+		},
+		// 1
+		{
+			"x y",
+			&Tree{
+				root: &Node{
+					children: []*Node{
+						{phrase: "x"},
+						{phrase: "y"},
+					},
+				},
+			},
+		},
+		// 2
+		{
+			"-x +y",
+			&Tree{
+				root: &Node{
+					children: []*Node{
+						{phrase: "x", verb: MustNot},
+						{phrase: "y", verb: Must},
+					},
+				},
+			},
+		},
+		// 3
+		{
+			"x +[+y -z]",
+			&Tree{
+				root: &Node{
+					children: []*Node{
+						{phrase: "x"},
+						// Subquery +[+y - z]
+						{
+							verb: Must,
+							children: []*Node{
+								{phrase: "y", verb: Must},
+								{phrase: "z", verb: MustNot},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for i, tt := range tests {
+		tree, err := Parse(tt.in)
+		msg := fmt.Sprintf(
+			"Fails test case (%d)\ninput: %s\ntree: %#v\ntree.String(): %s",
+			i, tt.in, tree, tree.String(),
+		)
+		assert.NoError(t, err, msg)
+		assert.True(t, tt.out.Equals(tree), msg)
+	}
+}
+
 func TestParseFailures(t *testing.T) {
 	// All the tests should raise a parse error.
 	tests := []string{

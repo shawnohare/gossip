@@ -87,8 +87,11 @@ func (n *Node) IsValid() bool {
 	if !n.IsLeaf() && n.phrase != "" {
 		return false
 	}
-
 	if n.IsLeaf() && n.phrase == "" {
+		return false
+	}
+	// Root should not have a verb.
+	if n.Parent == nil && !n.IsLeaf() && n.verb != 0 {
 		return false
 	}
 	return true

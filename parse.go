@@ -47,6 +47,9 @@ func Parse(s string) (*Tree, error) {
 				verb:   currVerb,
 				phrase: s[i:j],
 			}
+			if !q.IsValid() {
+				return nil, errors.New(ErrorEmptyQuery)
+			}
 			curr.AddChild(q)
 
 			// Update state.
@@ -56,7 +59,10 @@ func Parse(s string) (*Tree, error) {
 		case r == Plus || r == Minus:
 			// Update state.  If we already remember a verb, the query is malformed.
 			if !checkReserved(s, r, i, width) {
-				return nil, errors.New(ErrorMalformedQuery)
+				return nil, errors.New(ErrorVerbSequence)
+			}
+			if currVerb != Should {
+				return nil, errors.New(ErrorVerbSequence)
 			}
 			currVerb = int(r)
 			i += width
@@ -74,10 +80,17 @@ func Parse(s string) (*Tree, error) {
 			if !checkReserved(s, r, i, width) {
 				return nil, errors.New(ErrorMalformedQuery)
 			}
+			if currVerb != Should {
+				return nil, errors.New(ErrorVerbSequence)
+			}
+			if !curr.IsValid() {
+				return nil, errors.New(ErrorMalformedQuery)
+			}
 			curr = curr.Parent()
 			if curr == nil {
 				return nil, errors.New(ErrorUnpairedBracket)
 			}
+			i += width
 
 		case r == Space:
 			if !checkReserved(s, r, i, width) {
@@ -93,8 +106,14 @@ func Parse(s string) (*Tree, error) {
 			} else {
 				j += i
 			}
-			_ = curr.AddChild(&Node{verb: currVerb, phrase: s[i:j]})
+
+			c := curr.AddChild(&Node{verb: currVerb, phrase: s[i:j]})
+			if !c.IsValid() {
+				return nil, errors.New(ErrorEmptyQuery)
+			}
+
 			i = j
+			currVerb = 0
 		}
 	}
 

@@ -7,4 +7,5 @@ const (
 	ErrorUnpairedBracket        = ErrorMalformedQuery + "Unpaired bracket."
 	ErrorVerbSequence           = ErrorMalformedQuery + "Unexpected verb sequence."
 	ErrorUnexpectedReservedRune = ErrorMalformedQuery + "Unexpected reserved rune."
+	ErrorEmptyQuery             = ErrorMalformedQuery + "Semantically empty."
 )

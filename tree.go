@@ -1,5 +1,7 @@
 package gossip
 
+import "strings"
+
 // Tree is represents the parsed search tree of some input query.
 // It is effectively a root node together with some additional
 // methods.
@@ -45,10 +47,6 @@ func (t *Tree) IsValid() bool {
 
 // String returns the source query that generated the tree.
 func (t *Tree) String() string {
-	// if t == nil {
-	// 	return ""
-	// }
-	// return t.src
 
 	if t == nil || t.root == nil {
 		return ""
@@ -63,13 +61,17 @@ func (t *Tree) String() string {
 
 	// Otherwise convert each child to a string.  The result might
 	// look something like [+w0 +"phrase1" -[...]]
-	var s string
-	for _, child := range t.root.children {
+	strs := make([]string, len(t.root.children))
+	for i, child := range t.root.children {
 		subtree := NewTreeFromRoot(child)
-		s += subtree.String() + " "
+		substring := subtree.String()
+		if substring == "" {
+			return ""
+		}
+		strs[i] = substring
 	}
-	s = vs + "[" + s + "]"
 
+	s := vs + "[" + strings.Join(strs, " ") + "]"
 	return s
 }
 
