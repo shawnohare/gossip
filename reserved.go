@@ -54,28 +54,40 @@ func nextReserved(s string) (rune, int) {
 
 // lookBehindCheck inspects the provided string and compares the last
 // rune to the input rune, to determine whether the pair is valid.
-// The current rune is assumed to be marked as a control.  For instance,
-// it is the the left quotation mark in a pair, the left bracket (or +, -)
-// outside of a string literal, etc.
+// The current rune is assumed to be outside of a phrase literal.
 func lookBehindCheck(before string, current rune) bool {
 	prev, w := utf8.DecodeLastRuneInString(before)
+	// Matrix of acceptable combinations. Current control rune on top.
+	// Previous rune on left.  Here _ is a space and r any non-reserved rune.
+	//    +-  "  [  ]  _
+	// +-  x  o  o  x  x
+	//  "  x  ?  x  o  o
+	//  [  o  o  o  ?  o
+	//  ]  x  x  x  o  ?
+	//  _  o  o  o  o  o
+	//  r  x  x  x  o  o
 
-	// Valid the current rune is the initial
+	// Valid the current rune is the initial or preceeded by space.
+	// This will make multiple spaces acceptable inputs.
 	if w == 0 {
 		return true
 	}
-	if prev == current {
-		return false
+
+	// TODO finish all cases.  Also, need to consider exactly when this func
+	// is called. Presumably any time outside of a phrase literal.
+	var ok bool
+	switch current {
+	case plus, minus:
+		ok = prev == lbracket || prev == space
+	case quote:
+		ok = isRuneReserved(prev) && prev != rbracket
+	case lbracket:
+		ok = isRuneReserved(prev) && prev != quote && prev != rbracket
+	case rbracket, space:
+		ok = prev != plus && prev != minus
 	}
 
-	if prev == space ||
-		prev == lbracket ||
-		prev == quote ||
-		prev == minus ||
-		prev == plus {
-		return true
-	}
-	return false
+	return ok
 
 }
 

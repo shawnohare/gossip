@@ -34,6 +34,76 @@ func TestNextReservedRune(t *testing.T) {
 
 }
 
+func TestLookBehindCheck(t *testing.T) {
+	tests := []struct {
+		before  string
+		current rune
+		out     bool
+	}{
+		// current = plus
+		{"+", plus, false},
+		{"-", plus, false},
+		{`"`, plus, false},
+		{"[", plus, true},
+		{"]", plus, false},
+		{" ", plus, true},
+		{"+d", plus, false},
+		{"", plus, true},
+		// current = minus
+		{"+", minus, false},
+		{"-", minus, false},
+		{`"`, minus, false},
+		{"[", minus, true},
+		{"]", minus, false},
+		{" ", minus, true},
+		{"+d", minus, false},
+		{"", minus, true},
+		// current = quote
+		{"+", quote, true},
+		{"-", quote, true},
+		{`"`, quote, true},
+		{"[", quote, true},
+		{"]", quote, false},
+		{" ", quote, true},
+		{"+d", quote, false},
+		{"", quote, true},
+		// current = left bracket
+		{"+", lbracket, true},
+		{"-", lbracket, true},
+		{`"`, lbracket, false},
+		{"[", lbracket, true},
+		{"]", lbracket, false},
+		{" ", lbracket, true},
+		{"+d", lbracket, false},
+		{"", lbracket, true},
+		// current = rbracket
+		{"+", rbracket, false},
+		{"-", rbracket, false},
+		{`"`, rbracket, true},
+		{"[", rbracket, true},
+		{"]", rbracket, true},
+		{" ", rbracket, true},
+		{"+d", rbracket, true},
+		{"", rbracket, true},
+		// current = space
+		{"+", space, false},
+		{"-", space, false},
+		{`"`, space, true},
+		{"[", space, true},
+		{"]", space, true},
+		{" ", space, true},
+		{"+d", space, true},
+		{"", space, true},
+	}
+
+	for i, tt := range tests {
+		msg := fmt.Sprintf("Fails test case (%d) %#v", i, tt)
+		actual := lookBehindCheck(tt.before, tt.current)
+		assert.Equal(t, tt.out, actual, msg)
+	}
+
+}
+
 func TestIndexNonPhraseRune(t *testing.T) {
 	r0, _ := utf8.DecodeRuneInString("")
 	r1, _ := utf8.DecodeRuneInString("語")
