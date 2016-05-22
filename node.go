@@ -5,7 +5,7 @@ package gossip
 type Node struct {
 	parent   *Node
 	children []*Node
-	verb     int    // modal verb of the query: must (not), should.
+	verb     rune   // modal verb of the query: must (not), should.
 	phrase   string // phrase literal if this query is a leaf.
 }
 
@@ -47,8 +47,7 @@ func (n *Node) Phrase() string {
 }
 
 // Verb returns the integer code the the modal verb attached to the node.
-// If the node is
-func (n *Node) Verb() int {
+func (n *Node) Verb() rune {
 	if n.IsValid() {
 		return n.verb
 	}
@@ -73,13 +72,18 @@ func (n *Node) SetPhrase(phrase string) *Node {
 	return n
 }
 
-// SetVerb sets the node's modal verb and returns the instance.
-// the instance.
-func (n *Node) SetVerb(verb int) *Node {
+// SetVerb checks whether the input is a valid modal verb representation and
+// if so sets the node's verb attribute and returns the instance.
+// For example:
+//   var n *node
+//   n = n.SetVerb(Must)
+func (n *Node) SetVerb(verb rune) *Node {
 	if n == nil {
 		n = NewNode()
 	}
-	n.verb = verb
+	if IsVerb(verb) {
+		n.verb = verb
+	}
 	return n
 }
 
@@ -161,5 +165,8 @@ func (n *Node) Equals(m *Node) bool {
 }
 
 func NewNode() *Node {
-	return new(Node)
+	return &Node{
+		verb:   Should,
+		phrase: "",
+	}
 }

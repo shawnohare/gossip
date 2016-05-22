@@ -13,26 +13,27 @@ func TestParsePasses(t *testing.T) {
 		in  string
 		out *Tree
 	}{
-		{"w", &Tree{&Node{phrase: "w"}}},
+		{"w", &Tree{&Node{phrase: "w", verb: Should}}},
+		//
 		{
 			`+"machine learning"`,
 			&Tree{
 				root: &Node{verb: Must, phrase: "machine learning"},
 			},
 		},
-		// 1
+		//
 		{
 			"x y",
 			&Tree{
 				root: &Node{
 					children: []*Node{
-						{phrase: "x"},
-						{phrase: "y"},
+						{phrase: "x", verb: Should},
+						{phrase: "y", verb: Should},
 					},
 				},
 			},
 		},
-		// 2
+		//
 		{
 			"-x +y",
 			&Tree{
@@ -44,13 +45,13 @@ func TestParsePasses(t *testing.T) {
 				},
 			},
 		},
-		// 3
+		//
 		{
 			"x +[+y -z]",
 			&Tree{
 				root: &Node{
 					children: []*Node{
-						{phrase: "x"},
+						{phrase: "x", verb: Should},
 						// Subquery +[+y - z]
 						{
 							verb: Must,
@@ -63,6 +64,26 @@ func TestParsePasses(t *testing.T) {
 				},
 			},
 		},
+		//
+		{
+			"x, +[+y, -z]",
+			&Tree{
+				root: &Node{
+					children: []*Node{
+						{phrase: "x", verb: Should},
+						// Subquery +[+y - z]
+						{
+							verb: Must,
+							children: []*Node{
+								{phrase: "y", verb: Must},
+								{phrase: "z", verb: MustNot},
+							},
+						},
+					},
+				},
+			},
+		},
+		//
 		{
 			`+"phrase one" [+"phrase 2" -z]`,
 			&Tree{
@@ -82,6 +103,7 @@ func TestParsePasses(t *testing.T) {
 				},
 			},
 		},
+		//
 		{
 			`+"phrase one" [+"phrase 2" -z]`,
 			&Tree{
@@ -106,8 +128,8 @@ func TestParsePasses(t *testing.T) {
 	for i, tt := range tests {
 		tree, err := Parse(tt.in)
 		msg := fmt.Sprintf(
-			"Fails test case (%d)\ninput: %s\ntree: %#v\ntree.String(): %s",
-			i, tt.in, tree, tree.String(),
+			"Fails test case (%d)\ninput: %s\ntree: %#v\ntree.String(): %s\nchildren %#v",
+			i, tt.in, tree, tree, tree.Root().Children(),
 		)
 		assert.NoError(t, err, msg)
 		assert.True(t, tt.out.Equals(tree), msg)
@@ -154,4 +176,14 @@ func TestParseFailures(t *testing.T) {
 		)
 		assert.Error(t, err, msg)
 	}
+}
+
+func ExampleParse() {
+	// Example search that should include the phrases
+	// data science, machine learning and math,
+	// but must require the word statistics and not the word hype.
+	search := `"data science" "machine learning" +statistics -hype`
+	tree, _ := Parse(search)
+	fmt.Println(tree)
+	// Output: [data science, machine learning, +statistics, -hype]
 }

@@ -17,8 +17,8 @@ import (
 // Semantically empty search phrases will yield a parse error.
 func Parse(s string) (*Tree, error) {
 	var (
-		currVerb int   // modal verb to apply to children
-		i        int   // current index in input string
+		currVerb rune  = Should // modal verb to apply to children
+		i        int            // current index in input string
 		tree     *Tree = NewTree()
 		curr     *Node = tree.Root()
 	)
@@ -33,7 +33,7 @@ func Parse(s string) (*Tree, error) {
 		switch {
 		// When we see a quotation mark, search for the next occurrence and
 		// create a child
-		case r == Quote:
+		case IsPhraseDelim(r):
 			if !checkReserved(s, r, i, width) {
 				return nil, errors.New(ErrorMalformedQuery)
 			}
@@ -57,27 +57,27 @@ func Parse(s string) (*Tree, error) {
 			curr.AddChild(q)
 
 			// Update state.
-			currVerb = 0
+			currVerb = Should
 			i = j + width // advance head past matching quotation mark
 
-		case r == Plus || r == Minus:
+		case IsVerb(r):
 			// Update state.  If we already remember a verb, the query is malformed.
 			if !checkReserved(s, r, i, width) {
 				return nil, errors.New(ErrorVerbSequence)
 			}
-			currVerb = int(r)
+			currVerb = r
 			i += width
 
 		// Replace the current node with a new child subquery node.
-		case r == LeftBracket:
+		case IsSubqueryStart(r):
 			if !checkReserved(s, r, i, width) {
 				return nil, errors.New(ErrorMalformedQuery)
 			}
 			curr = curr.AddChild(&Node{verb: currVerb})
 			i += width
-			currVerb = 0
+			currVerb = Should
 
-		case r == RightBracket:
+		case IsSubqueryEnd(r):
 			if !checkReserved(s, r, i, width) {
 				return nil, errors.New(ErrorMalformedQuery)
 			}
@@ -87,15 +87,16 @@ func Parse(s string) (*Tree, error) {
 			curr = curr.Parent()
 			i += width
 
-		case r == Space:
-			if !checkReserved(s, r, i, width) {
-				return nil, errors.New(ErrorMalformedQuery)
-			}
+		case IsSeparator(r):
+			// Bad separators are currently detected by other tests.
+			// if !checkReserved(s, r, i, width) {
+			// 	return nil, errors.New(ErrorMalformedQuery)
+			// }
 			i += width
 
 		default:
 			// No reserved runes detected.  Search for next space.
-			_, j := nextReserved(s[i:])
+			_, j := NextReserved(s[i:])
 			if j == -1 {
 				j = len(s)
 			} else {
@@ -107,7 +108,7 @@ func Parse(s string) (*Tree, error) {
 			_ = curr.AddChild(&Node{verb: currVerb, phrase: s[i:j]})
 
 			i = j
-			currVerb = 0
+			currVerb = Should
 		}
 	}
 

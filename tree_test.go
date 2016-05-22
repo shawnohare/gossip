@@ -122,8 +122,8 @@ func TestTreeString(t *testing.T) {
 		{nil, ""},
 		{NewTree(), ""},
 		{h1, ""},
-		{h2, "[x y]"},
-		{h3, "[[x y] [+v -w]]"},
+		{h2, "[x, y]"},
+		{h3, "[[x, y], [+v, -w]]"},
 	}
 
 	for i, tt := range tests {

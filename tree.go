@@ -69,7 +69,7 @@ func (t *Tree) String() string {
 		strs[i] = substring
 	}
 
-	s := vs + "[" + strings.Join(strs, " ") + "]"
+	s := vs + "[" + strings.Join(strs, ", ") + "]"
 	return s
 }
 

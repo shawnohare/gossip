@@ -45,7 +45,7 @@ func TestNodeIsLeafAfterAdds(t *testing.T) {
 func TestNodeVerb(t *testing.T) {
 	tests := []struct {
 		in  *Node
-		out int
+		out rune
 	}{
 		{nil, VerbError},
 		{&Node{}, VerbError},
@@ -71,8 +71,14 @@ func TestNodeSetParent(t *testing.T) {
 
 func TestSetVerb(t *testing.T) {
 	var n *Node
+	n = n.SetVerb(Must)
+	assert.Equal(t, Must, n.verb)
+}
+
+func TestSetVerbInvalidInput(t *testing.T) {
+	var n *Node
 	n = n.SetVerb(-10)
-	assert.Equal(t, -10, n.verb)
+	assert.Equal(t, Should, n.verb)
 }
 
 func TestSetPhrase(t *testing.T) {
