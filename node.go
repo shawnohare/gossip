@@ -1,7 +1,5 @@
 package gossip
 
-import "errors"
-
 // Node in a parsed search tree.  It contains pointers to its parent node,
 // if any, and all of its children.
 type Node struct {
@@ -9,6 +7,20 @@ type Node struct {
 	children []*Node
 	verb     int    // modal verb of the query: must (not), should.
 	phrase   string // phrase literal if this query is a leaf.
+}
+
+func (n *Node) IsValid() bool {
+	if n == nil {
+		return false
+	}
+
+	if !n.IsLeaf() && n.phrase != "" {
+		return false
+	}
+	if n.IsLeaf() && n.phrase == "" {
+		return false
+	}
+	return true
 }
 
 // Parent of the instance.  Is nil if the node is a root.
@@ -71,31 +83,17 @@ func (n *Node) SetVerb(verb int) *Node {
 	return n
 }
 
-// IsLeaf reports whether the node is a leaf node.  Nil instances are
-// considered leaves.
+// IsLeaf reports whether the node is a leaf.
+// Nil instances are not considered leaves.
 func (n *Node) IsLeaf() bool {
+	if n == nil {
+		return false
+	}
 	return len(n.Children()) == 0
 }
 
 // IsValid reports whether the node represents a semantically valid node in
 // a parsed search tree. Only the instance is expected.
-func (n *Node) IsValid() bool {
-	if n == nil {
-		return false
-	}
-
-	if !n.IsLeaf() && n.phrase != "" {
-		return false
-	}
-	if n.IsLeaf() && n.phrase == "" {
-		return false
-	}
-	// Root should not have a verb.
-	if n.Parent == nil && !n.IsLeaf() && n.verb != 0 {
-		return false
-	}
-	return true
-}
 
 // depth is a tail recursive node depth function.
 func depth(node *Node, k int) int {
@@ -115,13 +113,10 @@ func (n *Node) Depth() int {
 // to be the parent of that child, and returns the child. A nil input
 // is ignored.
 func (n *Node) AddChild(child *Node) *Node {
-	if child == nil {
+	if child == nil || n == nil {
 		return nil
 	}
 
-	if n == nil {
-		n = NewNode()
-	}
 	child.parent = n
 	n.children = append(n.children, child)
 	return child
@@ -134,12 +129,12 @@ func (n *Node) NewChild() *Node {
 
 // NewSibling creates a sibling node of the instance.  The sibling and the
 // instance have the same parent, which also contains both nodes as children.
-func (n *Node) NewSibling() (*Node, error) {
-	if n == nil || n.parent == nil {
-		return nil, errors.New("Cannot create sibling Query without a parent.")
-	}
-	return n.parent.NewChild(), nil
-}
+// func (n *Node) NewSibling() (*Node, error) {
+// 	if n == nil || n.parent == nil {
+// 		return nil, errors.New("Cannot create sibling Query without a parent.")
+// 	}
+// 	return n.parent.NewChild(), nil
+// }
 
 // Equals reports whether the instance and input define semantically
 // equal parsed subtrees.

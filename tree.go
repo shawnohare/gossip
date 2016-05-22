@@ -19,24 +19,22 @@ func (t *Tree) Root() *Node {
 
 // SetRoot sets the tree's root
 // Caution: any existing root will be overwritten.
-func (t *Tree) SetRoot(root *Node) {
+func (t *Tree) SetRoot(root *Node) *Tree {
 	if t == nil {
 		t = NewTree()
 	}
 	t.root = root
+	return t
 }
 
 // IsValid recursively determines if every node is valid.
 func (t *Tree) IsValid() bool {
 	r := t.Root()
-	if r == nil {
+	if !r.IsValid() {
 		return false
 	}
 
-	if r.IsLeaf() {
-		return r.IsValid()
-	}
-
+	// Check the children of a valid non-leaf.
 	for _, child := range r.Children() {
 		if !NewTreeFromRoot(child).IsValid() {
 			return false
@@ -52,7 +50,7 @@ func (t *Tree) String() string {
 		return ""
 	}
 
-	vs := verbString(t.root.verb)
+	vs := VerbString(t.root.verb)
 
 	// Just return the phrase if the root is a leaf.
 	if t.root.IsLeaf() {
@@ -83,23 +81,26 @@ func (t *Tree) Equals(r *Tree) bool {
 }
 
 // leaves is a tail recursive function that computes the leaves of a tree.
-func leaves(children []*Node, current []*Node) []*Node {
-	if len(children) == 0 {
+func leaves(remaining []*Node, current []*Node) []*Node {
+	if len(remaining) == 0 {
 		return current
 	}
 
-	var nonLeaves []*Node
-	for _, node := range children {
+	var newRemaining []*Node
+	for _, node := range remaining {
 		if node.IsLeaf() {
 			current = append(current, node)
 		} else {
-			nonLeaves = append(nonLeaves, node)
+			newRemaining = append(newRemaining, node.Children()...)
 		}
 	}
-	return leaves(nonLeaves, current)
+	return leaves(newRemaining, current)
 }
 
 func (t *Tree) Leaves() []*Node {
+	if t.Root().IsLeaf() {
+		return []*Node{t.Root()}
+	}
 	return leaves(t.Root().Children(), nil)
 }
 

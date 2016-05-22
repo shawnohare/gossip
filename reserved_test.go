@@ -57,6 +57,12 @@ func TestCheckReservedRuneWhenLast(t *testing.T) {
 
 }
 
+func TestCheckReservedOutOfBounds(t *testing.T) {
+	assert.Equal(t, false, checkReserved("", 0, 1, 1))
+	assert.Equal(t, false, checkReserved("", -1, 1, 1))
+
+}
+
 // Checks when the reserved rune is the only element of the search string.
 func TestCheckReservedSingleton(t *testing.T) {
 	tests := []struct {
@@ -161,6 +167,8 @@ func TestIndexNonPhraseRune(t *testing.T) {
 		{`0123"567+"`, Plus, -1},
 		{`w "[]"`, LeftBracket, -1},
 		{"日本語", r1, 6}, // 10
+		{`日本語"+`, Plus, -1},
+		{`+`, Plus, 0},
 	}
 
 	for i, tt := range tests {

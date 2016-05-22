@@ -90,7 +90,6 @@ func checkReserved(s string, r rune, loc int, width int) bool {
 // if s = `[word1 "phrase with brackets[]" word2]` and r = `]`, then
 // the index returned is len(s)-1.
 func indexNonPhraseRune(s string, r rune) int {
-	inLiteral := false
 	var i int
 	for i < len(s) {
 		ri, w := utf8.DecodeRuneInString(s[i:]) // Get next rune
@@ -110,24 +109,5 @@ func indexNonPhraseRune(s string, r rune) int {
 		}
 
 	}
-	for i, ri := range s {
-		// Only match if we are not in a phrase literal.
-		if !inLiteral && ri == r {
-			return i
-		}
-		// Toggle inLiteral when we see quotation marks.
-		if ri == Quote {
-			inLiteral = !inLiteral
-		}
-	}
-
 	return -1
 }
-
-// Index reports the index of the next control rune or -1 if the rune is not
-// present in the input string.  Runes inside phrase literals are ignored.
-// ocurrence of r outside of a phrase literal.  For example,
-//   Index(`"+" +`, Plus) = 4.
-// func Index(s string, r rune) int {
-// 	// TODO
-// }

@@ -63,6 +63,44 @@ func TestParsePasses(t *testing.T) {
 				},
 			},
 		},
+		{
+			`+"phrase one" [+"phrase 2" -z]`,
+			&Tree{
+				root: &Node{
+					children: []*Node{
+						{
+							verb:   Must,
+							phrase: "phrase one"},
+						// Subquery +[+y - z]
+						{
+							children: []*Node{
+								{phrase: "phrase 2", verb: Must},
+								{phrase: "z", verb: MustNot},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			`+"phrase one" [+"phrase 2" -z]`,
+			&Tree{
+				root: &Node{
+					children: []*Node{
+						{
+							verb:   Must,
+							phrase: "phrase one"},
+						// Subquery +[+y - z]
+						{
+							children: []*Node{
+								{phrase: "phrase 2", verb: Must},
+								{phrase: "z", verb: MustNot},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for i, tt := range tests {
@@ -98,9 +136,14 @@ func TestParseFailures(t *testing.T) {
 		`+-word`,
 		`++[word]`,
 		`some words +[`,
+		`some words with empty phrase ""`,
 		`some words +[]`,     // last leaf is empty
 		`"some words +[]" +`, // last leaf is empty
 		`  `,                 // empty
+		` + ]`,               // empty
+		`  ]]`,               // empty
+		`+w + `,              // empty
+		`+w+ `,               // empty
 	}
 
 	for i, tt := range tests {
