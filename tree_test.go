@@ -62,10 +62,21 @@ func TestTreeIsValid(t *testing.T) {
 }
 
 func TestTreeLeavesExact(t *testing.T) {
-	leaves := []*Node{NewNode(), NewNode(), NewNode(), NewNode()}
+	leaves := []*Node{
+		NewNode(),
+		NewNode(), NewNode(),
+		NewNode(), NewNode(), NewNode(), NewNode(),
+	}
+	// leaves looks like
+	//        0
+	//     0     0
+	//    0 0   0 0
 	leaves[0].AddChild(leaves[1])
-	leaves[1].AddChild(leaves[2])
+	leaves[0].AddChild(leaves[2])
 	leaves[1].AddChild(leaves[3])
+	leaves[1].AddChild(leaves[4])
+	leaves[2].AddChild(leaves[5])
+	leaves[2].AddChild(leaves[6])
 
 	nt := NewTree()
 
@@ -75,9 +86,9 @@ func TestTreeLeavesExact(t *testing.T) {
 	}{
 		{nil, nil},
 		{nt, []*Node{nt.Root()}},
-		{NewTreeFromRoot(leaves[0]), leaves[2:]},
-		{NewTreeFromRoot(leaves[1]), leaves[2:]},
-		{NewTreeFromRoot(leaves[2]), leaves[2:3]},
+		{NewTreeFromRoot(leaves[0]), leaves[3:]},
+		{NewTreeFromRoot(leaves[1]), leaves[3:5]},
+		{NewTreeFromRoot(leaves[2]), leaves[5:]},
 	}
 
 	for i, tt := range tests {
