@@ -1,5 +1,7 @@
 package gossip
 
+import "strings"
+
 // Node in a parsed search tree.  It contains pointers to its parent node,
 // if any, and all of its children.
 type Node struct {
@@ -9,16 +11,29 @@ type Node struct {
 	phrase   string // phrase literal if this query is a leaf.
 }
 
+// IsTreeValid recursively determines if every node is valid.
 func (n *Node) IsValid() bool {
 	if n == nil {
 		return false
 	}
 
+	if !IsVerb(n.verb) {
+		return false
+	}
+	//
+	if n.IsLeaf() {
+		return n.phrase != "" && IsVerb(n.verb)
+	}
+
+	// Preliminary non-leaf check.
 	if !n.IsLeaf() && n.phrase != "" {
 		return false
 	}
-	if n.IsLeaf() && n.phrase == "" {
-		return false
+	// Check the children of a valid non-leaf.
+	for _, child := range n.Children() {
+		if !child.IsValid() {
+			return false
+		}
 	}
 	return true
 }
@@ -87,6 +102,14 @@ func (n *Node) SetVerb(verb rune) *Node {
 	return n
 }
 
+// IsRoot reports if the node is the root of a tree.
+func (n *Node) IsRoot() bool {
+	if n == nil {
+		return false
+	}
+	return n.Parent() == nil
+}
+
 // IsLeaf reports whether the node is a leaf.
 // Nil instances are not considered leaves.
 func (n *Node) IsLeaf() bool {
@@ -95,9 +118,6 @@ func (n *Node) IsLeaf() bool {
 	}
 	return len(n.Children()) == 0
 }
-
-// IsValid reports whether the node represents a semantically valid node in
-// a parsed search tree. Only the instance is expected.
 
 // depth is a tail recursive node depth function.
 func depth(node *Node, k int) int {
@@ -164,9 +184,99 @@ func (n *Node) Equals(m *Node) bool {
 	return ok
 }
 
+// Root returns the root node of the tree containing the instance.
+func (n *Node) Root() *Node {
+
+	tmp := n
+	for tmp.Parent() != nil {
+		tmp = tmp.Parent()
+	}
+
+	return tmp
+}
+
+// leaves is a tail recursive function that computes the leaves of a tree.
+func leaves(remaining []*Node, current []*Node) []*Node {
+	if len(remaining) == 0 {
+		return current
+	}
+
+	var newRemaining []*Node
+	for _, node := range remaining {
+		if node.IsLeaf() {
+			current = append(current, node)
+		} else {
+			newRemaining = append(newRemaining, node.Children()...)
+		}
+	}
+	return leaves(newRemaining, current)
+}
+
+// Leaves returns all external nodes of the subtree defined by the node.
+func (n *Node) Leaves() []*Node {
+	if n.IsLeaf() {
+		return []*Node{n}
+	}
+	return leaves(n.Children(), nil)
+}
+
+// Height returns the height of the node.  This is the max depth of
+// all the node's leaves.
+func (n *Node) Height() int {
+	var maxDepth int
+	for _, node := range n.Leaves() {
+		if d := node.Depth(); d > maxDepth {
+			maxDepth = d
+		}
+	}
+	return maxDepth
+}
+
+func (n *Node) String() string {
+	if n == nil {
+		return ""
+	}
+
+	// Just return the phrase if the root is a leaf.
+	vs := VerbString(n.verb)
+	if n.IsLeaf() {
+		if n.IsValid() {
+			str := vs + n.Phrase()
+			if strings.Contains(n.phrase, " ") || strings.Contains(n.phrase, ",") {
+				str = `"` + str + `"`
+
+			}
+			return str
+		}
+		return ""
+	}
+
+	// Otherwise convert each child to a string.  The result might
+	// look something like [+w0 +"phrase1" -[...]]
+	strs := make([]string, len(n.children))
+	for i, child := range n.children {
+		substring := child.String()
+		if substring == "" {
+			return ""
+		}
+		strs[i] = substring
+	}
+
+	s := vs + "[" + strings.Join(strs, ", ") + "]"
+	return s
+}
+
+// NewNode produces a leaf node with the default modal verb of Should,
+// an empty phrase.  This node is not semantically valid until a phrase
+// is set.
 func NewNode() *Node {
 	return &Node{
 		verb:   Should,
 		phrase: "",
 	}
 }
+
+// New is an alias for NewNode.
+// func New() *Node {
+// 	return NewNode()
+// }

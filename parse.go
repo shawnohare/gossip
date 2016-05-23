@@ -15,12 +15,12 @@ import (
 // returns the height 0 tree for the later.
 //
 // Semantically empty search phrases will yield a parse error.
-func Parse(s string) (*Tree, error) {
+func Parse(s string) (*Node, error) {
 	var (
 		currVerb rune  = Should // modal verb to apply to children
 		i        int            // current index in input string
-		tree     *Tree = NewTree()
-		curr     *Node = tree.Root()
+		root     *Node = NewNode()
+		curr     *Node = root
 	)
 
 	if s == "" {
@@ -113,7 +113,6 @@ func Parse(s string) (*Tree, error) {
 	}
 
 	// Collapse unnecessary hierarchy, and do a basic sanity check.
-	root := tree.Root()
 	if len(root.children) == 1 && root.children[0].IsLeaf() {
 		root = root.children[0]
 		root.parent = nil
@@ -123,7 +122,6 @@ func Parse(s string) (*Tree, error) {
 	if !root.IsValid() {
 		return nil, errors.New(ErrorMalformedQuery)
 	}
-	tree.root = root
 
-	return tree, nil
+	return root, nil
 }

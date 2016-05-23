@@ -11,6 +11,10 @@ func TestNodeMethodsForNil(t *testing.T) {
 	var n *Node
 	assert.False(t, n.Equals(n))
 	assert.False(t, n.IsValid())
+	assert.Equal(t, 0, n.Height())
+	assert.Equal(t, "", n.String())
+	assert.Nil(t, n.Root())
+	assert.Len(t, n.Leaves(), 0)
 	assert.False(t, n.IsLeaf())
 	assert.Equal(t, VerbError, n.Verb())
 	assert.Len(t, n.Children(), 0)
@@ -125,15 +129,16 @@ func TestNodeEquals(t *testing.T) {
 		{nil, nil, false},
 		{nil, &Node{}, false},
 		{nil, &Node{phrase: "x"}, false},
-		{&Node{}, &Node{}, false},
-		{&Node{}, &Node{phrase: "x"}, false},
-		{&Node{phrase: "x"}, &Node{phrase: "y"}, false},
-		{&Node{verb: Must, phrase: "x"}, &Node{phrase: "x"}, false},
+		{NewNode(), NewNode(), false},
+		{NewNode(), &Node{phrase: "x", verb: Should}, false},
+		{&Node{phrase: "x", verb: Should}, &Node{phrase: "y", verb: Should}, false},
+		{&Node{verb: Must, phrase: "x"}, &Node{verb: Should, phrase: "x"}, false},
 		{&Node{verb: Must, phrase: "x"}, &Node{verb: MustNot, phrase: "x"}, false},
-		{&Node{phrase: "x"}, &Node{phrase: "x"}, true},
+		{&Node{phrase: "x", verb: Should}, &Node{phrase: "x", verb: Should}, true},
 		// Basic test with children.
 		{
 			&Node{
+				verb: Should,
 				children: []*Node{
 					&Node{
 						verb:   Must,
@@ -142,6 +147,7 @@ func TestNodeEquals(t *testing.T) {
 				},
 			},
 			&Node{
+				verb: Should,
 				children: []*Node{
 					&Node{
 						verb:   Must,
@@ -154,8 +160,10 @@ func TestNodeEquals(t *testing.T) {
 		// 10. Trees of height 2.
 		{
 			&Node{
+				verb: Should,
 				children: []*Node{
 					&Node{
+						verb: Should,
 						children: []*Node{
 							&Node{
 								verb:   Must,
@@ -166,8 +174,10 @@ func TestNodeEquals(t *testing.T) {
 				},
 			},
 			&Node{
+				verb: Should,
 				children: []*Node{
 					&Node{
+						verb: Should,
 						children: []*Node{
 							&Node{
 								verb:   Must,
@@ -203,6 +213,7 @@ func TestNodeEquals(t *testing.T) {
 		// Children are different lengths.
 		{
 			&Node{
+				verb: Should,
 				children: []*Node{
 					&Node{
 						verb:   Must,
@@ -211,6 +222,7 @@ func TestNodeEquals(t *testing.T) {
 				},
 			},
 			&Node{
+				verb: Should,
 				children: []*Node{
 					&Node{
 						verb:   Must,
@@ -227,6 +239,7 @@ func TestNodeEquals(t *testing.T) {
 		// Children are different.
 		{
 			&Node{
+				verb: Should,
 				children: []*Node{
 					&Node{
 						verb:   Must,
@@ -235,6 +248,7 @@ func TestNodeEquals(t *testing.T) {
 				},
 			},
 			&Node{
+				verb: Should,
 				children: []*Node{
 					&Node{
 						verb:   Must,
@@ -261,8 +275,8 @@ func TestNodePhrase(t *testing.T) {
 		{nil, ""},
 		{&Node{}, ""},
 		{&Node{parent: &Node{}}, ""},
-		{&Node{phrase: "x"}, "x"},
-		{&Node{children: []*Node{&Node{phrase: "x"}}}, ""},
+		{&Node{phrase: "x", verb: Should}, "x"},
+		{&Node{children: []*Node{&Node{phrase: "x", verb: Should}}}, ""},
 	}
 
 	for i, tt := range tests {
@@ -286,6 +300,176 @@ func TestNodeDepth(t *testing.T) {
 	for i, tt := range tests {
 		msg := fmt.Sprintf("Test case (%d) %#v fails", i, tt)
 		actual := tt.in.Depth()
+		assert.Equal(t, tt.out, actual, msg)
+	}
+}
+
+func TestTreeIsValid(t *testing.T) {
+	h1 := NewNode()
+	h1.NewChild().SetPhrase("test")
+
+	h2 := NewNode()
+	h2.NewChild().NewChild().SetPhrase("test")
+
+	h3 := NewNode()
+	h3.NewChild().SetPhrase("test").NewChild().SetPhrase("test")
+
+	tests := []struct {
+		in  *Node
+		out bool
+	}{
+		{nil, false},
+		{NewNode(), false},
+		{h1, true},
+		{h2, true},
+		{h3, false},
+	}
+
+	for i, tt := range tests {
+		msg := fmt.Sprintf("Test case (%d) %#v fails", i, tt)
+		actual := tt.in.IsValid()
+		assert.Equal(t, tt.out, actual, msg)
+	}
+
+}
+
+func TestNodeLeavesExact(t *testing.T) {
+	leaves := []*Node{
+		NewNode(),
+		NewNode(), NewNode(),
+		NewNode(), NewNode(), NewNode(), NewNode(),
+	}
+	// leaves looks like
+	//        0
+	//     0     0
+	//    0 0   0 0
+	leaves[0].AddChild(leaves[1])
+	leaves[0].AddChild(leaves[2])
+	leaves[1].AddChild(leaves[3])
+	leaves[1].AddChild(leaves[4])
+	leaves[2].AddChild(leaves[5])
+	leaves[2].AddChild(leaves[6])
+
+	n := NewNode()
+
+	tests := []struct {
+		in  *Node
+		out []*Node
+	}{
+		{nil, nil},
+		{n, []*Node{n}},
+		{leaves[0], leaves[3:]},
+		{leaves[1], leaves[3:5]},
+		{leaves[2], leaves[5:]},
+	}
+
+	for i, tt := range tests {
+		actual := tt.in.Leaves()
+		msg := fmt.Sprintf("Test case (%d) fails", i)
+		assert.Equal(t, tt.out, actual, msg)
+	}
+
+}
+
+func TestNodeString(t *testing.T) {
+	h1 := NewNode()
+	h1.NewChild()
+
+	h2 := NewNode()
+	h2.NewChild().SetPhrase("x")
+	h2.NewChild().SetPhrase("y")
+
+	h3 := NewNode()
+	c1 := h3.NewChild()
+	c1.NewChild().SetPhrase("x")
+	c1.NewChild().SetPhrase("y")
+	c2 := h3.NewChild()
+	c2.NewChild().SetPhrase("v").SetVerb(Must)
+	c2.NewChild().SetPhrase("w").SetVerb(MustNot)
+
+	tests := []struct {
+		in  *Node
+		out string
+	}{
+		{nil, ""},
+		{NewNode(), ""},
+		{h1, ""},
+		{h2, "[x, y]"},
+		{h3, "[[x, y], [+v, -w]]"},
+	}
+
+	for i, tt := range tests {
+		msg := fmt.Sprintf("Test case (%d) %#v fails", i, tt)
+		actual := tt.in.String()
+		assert.Equal(t, tt.out, actual, msg)
+	}
+
+}
+
+func TestNodeHeight(t *testing.T) {
+	h1 := NewNode()
+	h1.NewChild()
+
+	h2 := NewNode()
+	h2.NewChild().NewChild()
+	h2.NewChild()
+
+	h3 := NewNode()
+	h3.NewChild()
+	h3.NewChild().NewChild()
+	h3.NewChild().NewChild().NewChild()
+
+	tests := []struct {
+		in  *Node
+		out int
+	}{
+		{nil, 0},
+		{new(Node), 0},
+		{NewNode(), 0},
+		{h1, 1},
+		{h2, 2},
+		{h3, 3},
+	}
+
+	for i, tt := range tests {
+		msg := fmt.Sprintf("Test case (%d) %#v fails", i, tt)
+		actual := tt.in.Height()
+		assert.Equal(t, tt.out, actual, msg)
+	}
+}
+
+func TestNodeRoot(t *testing.T) {
+	n := NewNode()
+	m := n.NewChild()
+	tests := []struct {
+		in  *Node
+		out *Node
+	}{
+		{nil, nil},
+		{n, n},
+		{m, n},
+	}
+
+	for i, tt := range tests {
+		actual := tt.in.Root()
+		msg := fmt.Sprintf("Test case (%d) fails", i)
+		assert.Equal(t, tt.out, actual, msg)
+	}
+
+}
+func TestNodeIsRoot(t *testing.T) {
+	tests := []struct {
+		in  *Node
+		out bool
+	}{
+		{nil, false},
+		{NewNode(), true},
+		{NewNode().NewChild(), false},
+	}
+
+	for i, tt := range tests {
+		actual := tt.in.IsRoot()
+		msg := fmt.Sprintf("Test case (%d) fails", i)
 		assert.Equal(t, tt.out, actual, msg)
 	}
 }

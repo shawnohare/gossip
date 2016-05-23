@@ -11,54 +11,82 @@ func TestParsePasses(t *testing.T) {
 	// All the tests should pass.
 	tests := []struct {
 		in  string
-		out *Tree
+		out *Node
 	}{
-		{"w", &Tree{&Node{phrase: "w", verb: Should}}},
+		{"w", &Node{phrase: "w", verb: Should}},
 		//
 		{
 			`+"machine learning"`,
-			&Tree{
-				root: &Node{verb: Must, phrase: "machine learning"},
-			},
+			&Node{verb: Must, phrase: "machine learning"},
 		},
 		//
 		{
 			"x y",
-			&Tree{
-				root: &Node{
-					children: []*Node{
-						{phrase: "x", verb: Should},
-						{phrase: "y", verb: Should},
-					},
+			&Node{
+				verb: Should,
+				children: []*Node{
+					{phrase: "x", verb: Should},
+					{phrase: "y", verb: Should},
+				},
+			},
+		},
+		//
+		{
+			"x,y",
+			&Node{
+				verb: Should,
+				children: []*Node{
+					{phrase: "x", verb: Should},
+					{phrase: "y", verb: Should},
+				},
+			},
+		},
+		//
+		{
+			"x,+y",
+			&Node{
+				verb: Should,
+				children: []*Node{
+					{phrase: "x", verb: Should},
+					{phrase: "y", verb: Must},
+				},
+			},
+		},
+		//
+		{
+			"x, +y",
+			&Node{
+				verb: Should,
+				children: []*Node{
+					{phrase: "x", verb: Should},
+					{phrase: "y", verb: Must},
 				},
 			},
 		},
 		//
 		{
 			"-x +y",
-			&Tree{
-				root: &Node{
-					children: []*Node{
-						{phrase: "x", verb: MustNot},
-						{phrase: "y", verb: Must},
-					},
+			&Node{
+				verb: Should,
+				children: []*Node{
+					{phrase: "x", verb: MustNot},
+					{phrase: "y", verb: Must},
 				},
 			},
 		},
 		//
 		{
 			"x +[+y -z]",
-			&Tree{
-				root: &Node{
-					children: []*Node{
-						{phrase: "x", verb: Should},
-						// Subquery +[+y - z]
-						{
-							verb: Must,
-							children: []*Node{
-								{phrase: "y", verb: Must},
-								{phrase: "z", verb: MustNot},
-							},
+			&Node{
+				verb: Should,
+				children: []*Node{
+					{phrase: "x", verb: Should},
+					// Subquery +[+y - z]
+					{
+						verb: Must,
+						children: []*Node{
+							{phrase: "y", verb: Must},
+							{phrase: "z", verb: MustNot},
 						},
 					},
 				},
@@ -67,17 +95,36 @@ func TestParsePasses(t *testing.T) {
 		//
 		{
 			"x, +[+y, -z]",
-			&Tree{
-				root: &Node{
-					children: []*Node{
-						{phrase: "x", verb: Should},
-						// Subquery +[+y - z]
-						{
-							verb: Must,
-							children: []*Node{
-								{phrase: "y", verb: Must},
-								{phrase: "z", verb: MustNot},
-							},
+			&Node{
+				verb: Should,
+				children: []*Node{
+					{phrase: "x", verb: Should},
+					// Subquery +[+y - z]
+					{
+						verb: Must,
+						children: []*Node{
+							{phrase: "y", verb: Must},
+							{phrase: "z", verb: MustNot},
+						},
+					},
+				},
+			},
+		},
+		//
+		{
+			`+"phrase one", [+"phrase 2", -z]`,
+			&Node{
+				verb: Should,
+				children: []*Node{
+					{
+						verb:   Must,
+						phrase: "phrase one"},
+					// Subquery +[+y - z]
+					{
+						verb: Should,
+						children: []*Node{
+							{phrase: "phrase 2", verb: Must},
+							{phrase: "z", verb: MustNot},
 						},
 					},
 				},
@@ -86,38 +133,18 @@ func TestParsePasses(t *testing.T) {
 		//
 		{
 			`+"phrase one" [+"phrase 2" -z]`,
-			&Tree{
-				root: &Node{
-					children: []*Node{
-						{
-							verb:   Must,
-							phrase: "phrase one"},
-						// Subquery +[+y - z]
-						{
-							children: []*Node{
-								{phrase: "phrase 2", verb: Must},
-								{phrase: "z", verb: MustNot},
-							},
-						},
-					},
-				},
-			},
-		},
-		//
-		{
-			`+"phrase one" [+"phrase 2" -z]`,
-			&Tree{
-				root: &Node{
-					children: []*Node{
-						{
-							verb:   Must,
-							phrase: "phrase one"},
-						// Subquery +[+y - z]
-						{
-							children: []*Node{
-								{phrase: "phrase 2", verb: Must},
-								{phrase: "z", verb: MustNot},
-							},
+			&Node{
+				verb: Should,
+				children: []*Node{
+					{
+						verb:   Must,
+						phrase: "phrase one"},
+					// Subquery +[+y - z]
+					{
+						verb: Should,
+						children: []*Node{
+							{phrase: "phrase 2", verb: Must},
+							{phrase: "z", verb: MustNot},
 						},
 					},
 				},
@@ -166,6 +193,8 @@ func TestParseFailures(t *testing.T) {
 		`  ]]`,               // empty
 		`+w + `,              // empty
 		`+w+ `,               // empty
+		`,`,                  // empty
+		`,,,`,                // empty
 	}
 
 	for i, tt := range tests {
@@ -185,5 +214,5 @@ func ExampleParse() {
 	search := `"data science" "machine learning" +statistics -hype`
 	tree, _ := Parse(search)
 	fmt.Println(tree)
-	// Output: [data science, machine learning, +statistics, -hype]
+	// Output: ["data science", "machine learning", +statistics, -hype]
 }
