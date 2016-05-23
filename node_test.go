@@ -66,6 +66,25 @@ func TestNodeVerb(t *testing.T) {
 	}
 }
 
+func TestNodeVerbString(t *testing.T) {
+	tests := []struct {
+		in *Node
+	}{
+		{nil},
+		{&Node{}},
+		{&Node{verb: Must}},
+		{&Node{verb: Must, phrase: "a"}},
+		{&Node{verb: Should, phrase: "a"}},
+		{&Node{verb: MustNot, phrase: "a"}},
+	}
+
+	for i, tt := range tests {
+		msg := fmt.Sprintf("Test case (%d) %#v fails", i, tt)
+		actual := tt.in.VerbString()
+		assert.Equal(t, VerbStringHuman(tt.in.Verb()), actual, msg)
+	}
+}
+
 func TestNodeSetParent(t *testing.T) {
 	var n *Node
 	p := &Node{}
@@ -394,8 +413,8 @@ func TestNodeString(t *testing.T) {
 		{nil, ""},
 		{NewNode(), ""},
 		{h1, ""},
-		{h2, "[x, y]"},
-		{h3, "[[x, y], [+v, -w]]"},
+		{h2, `["x", "y"]`},
+		{h3, `[["x", "y"], [+"v", -"w"]]`},
 	}
 
 	for i, tt := range tests {

@@ -78,6 +78,11 @@ func (n *Node) Verb() rune {
 	return VerbError
 }
 
+// VerbString returns a human readable version of the node's modal verb.
+func (n *Node) VerbString() string {
+	return VerbStringHuman(n.Verb())
+}
+
 // SetParent sets the node's parent and returns the instance.
 func (n *Node) SetParent(parent *Node) *Node {
 	if n == nil {
@@ -241,12 +246,7 @@ func (n *Node) String() string {
 	vs := VerbString(n.verb)
 	if n.IsLeaf() {
 		if n.IsValid() {
-			str := vs + n.Phrase()
-			if strings.Contains(n.phrase, " ") || strings.Contains(n.phrase, ",") {
-				str = `"` + str + `"`
-
-			}
-			return str
+			return vs + `"` + n.Phrase() + `"`
 		}
 		return ""
 	}

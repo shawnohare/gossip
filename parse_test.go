@@ -214,5 +214,16 @@ func ExampleParse() {
 	search := `"data science" "machine learning" +statistics -hype`
 	tree, _ := Parse(search)
 	fmt.Println(tree)
-	// Output: ["data science", "machine learning", +statistics, -hype]
+	// Output: ["data science", "machine learning", +"statistics", -"hype"]
+}
+
+func ExampleLeafNode() {
+	search := `"data science" "machine learning" +statistics -hype`
+	tree, _ := Parse(search)
+
+	var children []*Node
+	children = tree.Children()
+	leaf := children[2]
+	fmt.Printf("%s contain %s", leaf.VerbString(), leaf.Phrase())
+	// Output: must contain statistics
 }
