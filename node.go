@@ -11,6 +11,15 @@ type Node struct {
 	phrase   string // phrase literal if this query is a leaf.
 }
 
+// IsLeaf reports whether the node is a leaf.
+// Nil instances are not considered leaves.
+func (n *Node) IsLeaf() bool {
+	if n == nil {
+		return false
+	}
+	return len(n.Children()) == 0
+}
+
 // IsTreeValid recursively determines if every node is valid.
 func (n *Node) IsValid() bool {
 	if n == nil {
@@ -108,15 +117,6 @@ func (n *Node) IsRoot() bool {
 		return false
 	}
 	return n.Parent() == nil
-}
-
-// IsLeaf reports whether the node is a leaf.
-// Nil instances are not considered leaves.
-func (n *Node) IsLeaf() bool {
-	if n == nil {
-		return false
-	}
-	return len(n.Children()) == 0
 }
 
 // depth is a tail recursive node depth function.
