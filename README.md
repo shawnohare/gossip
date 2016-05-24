@@ -1,6 +1,6 @@
 # gossip (go search parser)
-[![Circle CI](https://circleci.com/gh/shawnohare/gossip.svg?style=svg)](https://circleci.com/gh/shawnohare/wemdigo)
-[![GoDoc](https://godoc.org/github.com/shawnohare/gossip?status.svg)](http://godoc.org/github.com/shawnohare/wemdigo)
+[![Circle CI](https://circleci.com/gh/shawnohare/gossip.svg?style=svg)](https://circleci.com/gh/shawnohare/gossip)
+[![GoDoc](https://godoc.org/github.com/shawnohare/gossip?status.svg)](http://godoc.org/github.com/shawnohare/gossip)
 
 The gossip package provides the ability to parse raw text queries using a
 simple DSL into a tree consisting of nodes that are phrases or subqueries
