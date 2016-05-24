@@ -5,7 +5,7 @@
 The gossip package provides the ability to parse raw text queries using a
 simple DSL into a tree consisting of nodes that are phrases or subqueries
 together with modal verbs.  For example:
-```
+```go
 package main
 
 import (
