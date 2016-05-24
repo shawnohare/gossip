@@ -21,27 +21,24 @@
 // the phrase "data science" and must contain the term "math" but not
 // the term "hype".
 //
-// The symbols [, ", ], \, +, - are reserved and have context-dependent
+// The symbols ", [, ], +, - and , are are reserved and have context-dependent
 // special interpretations.
 //
-// Phrases
+// Phrase Literals
 //
-// Phrases are typically multi-word sequences where proximity matters.
-// They are contained by unescaped quotation marks.  For example,
-//   "data science"
+// Phrases are typically multi-word sequences where word proximity matters.
+// They are contained between matching quotation marks.  For example,
+//   `"data science"`
 // represents a query where matching documents should contain the
-// adjacent words "data" and "science".
+// the adjacent words "data" and "science".  No symbols are parsed inside
+// a phrase literal, except for the initial and terminal quotation marks
+// themselves.  For example,
+//   `+programming +"c++"`
+// specifies a search that must contain both programming and c++.  The
+// query
+//   `c++`
+// results in a parse error, since the + is interpreted as a modal verb.
 //
-// A phrase is terminated by a non-escaped quotation mark.
-// Within a phrase, \ represents an escape.  In particular,
-// ocurrences of \\ and \" are interpreted as the runes \ and ",
-// respectively.  Otherwise the contents of a phrase are treated as a string
-// literal. A double quotation mark or \ can be searched by using a phrase \.
-// For example,
-//   "\"next best thing\"" -> "next best thing", "this is ok\\" -> "this is ok\"
-// are valid phrases, whereas
-//   "the left quotation mark is unpaired\"
-// will result in a parse error.
 //
 // Modal verbs
 //
