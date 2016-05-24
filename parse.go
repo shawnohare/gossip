@@ -73,7 +73,9 @@ func Parse(s string) (*Node, error) {
 			if !checkReserved(s, r, i, width) {
 				return nil, errors.New(ErrorMalformedQuery)
 			}
-			curr = curr.AddChild(&Node{verb: currVerb})
+			child := &Node{verb: currVerb}
+			curr.AddChild(child)
+			curr = child
 			i += width
 			currVerb = Should
 

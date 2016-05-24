@@ -21,9 +21,31 @@ func TestNodeMethodsForNil(t *testing.T) {
 	assert.Equal(t, "", n.Phrase())
 	assert.Equal(t, 0, n.Depth())
 	assert.Nil(t, n.Parent())
-	assert.Nil(t, n.AddChild(&Node{}))
+	assert.NotNil(t, n.AddChild(&Node{}))
 	assert.Nil(t, n.AddChild(nil))
 	assert.Nil(t, n.NewChild())
+	assert.NotNil(t, n.SetParent(nil))
+	assert.NotNil(t, n.SetParent(NewNode()))
+
+}
+
+func TestNodeAddChildForNil(t *testing.T) {
+	var n *Node
+	n = n.AddChild(NewNode())
+	assert.NotNil(t, n)
+	assert.Len(t, n.Children(), 1)
+}
+
+func TestNodeAddChildSelf(t *testing.T) {
+	m := NewNode()
+	m.AddChild(m)
+	assert.Len(t, m.Children(), 0)
+}
+
+func TestNodeSetParentSelf(t *testing.T) {
+	m := NewNode()
+	m.SetParent(m)
+	assert.Nil(t, m.Parent())
 }
 
 func TestNodeIsLeafAfterAdds(t *testing.T) {
@@ -111,12 +133,16 @@ func TestSetPhrase(t *testing.T) {
 }
 
 func TestNodeIsValid(t *testing.T) {
+	n := NewNode()
+	n.parent = n
+
 	tests := []struct {
 		in  *Node
 		out bool
 	}{
 		{nil, false},
 		{&Node{}, false},
+		{n, false}, // parent is self
 		{
 			&Node{
 				children: []*Node{

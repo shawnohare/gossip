@@ -10,7 +10,7 @@
 // multi-word searches where proximity is important.  These also serve
 // as a way to search over otherwise reserved symbols.
 //
-// The search DSL does not support parsing arbitrary propsitions in first
+// The search DSL does not support parsing arbitrary propositions in first
 // order logic, but does allow infinitely nested subqueries, which provides
 // a great deal of flexibility when combined with the three supported
 // modal verbs: Must, Should, MustNot.
@@ -21,7 +21,7 @@
 // the phrase "data science" and must contain the term "math" but not
 // the term "hype".
 //
-// The symbols ", [, ], +, - and , are are reserved and have context-dependent
+// The symbols {, [, ], +, - and , are are reserved and have context-dependent
 // special interpretations.
 //
 // Phrase Literals
@@ -29,7 +29,7 @@
 // Phrases are typically multi-word sequences where word proximity matters.
 // They are contained between matching quotation marks.  For example,
 //   `"data science"`
-// represents a query where matching documents should contain the
+// represents a query where matching documents should contain
 // the adjacent words "data" and "science".  No symbols are parsed inside
 // a phrase literal, except for the initial and terminal quotation marks
 // themselves.  For example,
@@ -39,26 +39,24 @@
 //   `c++`
 // results in a parse error, since the + is interpreted as a modal verb.
 //
-//
 // Modal verbs
 //
-// The model verbs should, must, and must not are supported.  These verbs
-// can apply words, phrase, and nested queries. By default, all objects are
-// assumed to be modified by the modal verb "should".  Put another way,
-// a query comprised of a set of words is equivalent to a disjunction,
-// whereas a query comprised entirely of words modified by "must" represents
-// a conjunction.
+// The model verbs "should", "must", and "must not" are supported.  They
+// are represented in query strings as "|", "+", "-" respectively.
+// Terms are by default implicitly modified by "should", so a query
+// such as
+//  `x y z`
+// is a disjunction over the three terms.
+// These modal verbs can apply words, phrase, and nested queries.
 //
-// +p indicates that the object p must be matched: e.g.,
-// the query
-//   +moms +"video gamers"
-// should be matched by documents
-// that contain both moms and the literal phrase "video gamers".
+// Subqueries
 //
-// -p indicates that the phrase must not be matched.
+// A nested subquery is specified by wrapping it in square brackets.
+// For example,
+//   `"machine learning" +[math data -hype]`
+// specifies a search for documents that should contain the phrase
+// "machine learning", and must contain at least one term from
+// the set {"math", "data"} but not "hype".
 //
-// [] encloses a subquery. The + and - operators specify whether
-// this subuery must match or must not match.  By default the subquery
-// should (but need not) match. Using subqueries allows for a high level
-// of search customization.
+// Infinite nesting of subqueries is supported.
 package gossip

@@ -20,16 +20,20 @@ func (n *Node) IsLeaf() bool {
 	return len(n.Children()) == 0
 }
 
-// IsTreeValid recursively determines if every node is valid.
+// IsValid recursively determines if every node is valid.
 func (n *Node) IsValid() bool {
 	if n == nil {
+		return false
+	}
+
+	if n.parent == n {
 		return false
 	}
 
 	if !IsVerb(n.verb) {
 		return false
 	}
-	//
+
 	if n.IsLeaf() {
 		return n.phrase != "" && IsVerb(n.verb)
 	}
@@ -83,12 +87,15 @@ func (n *Node) VerbString() string {
 	return VerbStringHuman(n.Verb())
 }
 
-// SetParent sets the node's parent and returns the instance.
+// SetParent sets the node's parent and returns the instance.  If the
+// parent input is the node itself, nothing is set.
 func (n *Node) SetParent(parent *Node) *Node {
 	if n == nil {
 		n = NewNode()
 	}
-	n.parent = parent
+	if n != parent {
+		n.parent = parent
+	}
 	return n
 }
 
@@ -142,18 +149,32 @@ func (n *Node) Depth() int {
 // to be the parent of that child, and returns the child. A nil input
 // is ignored.
 func (n *Node) AddChild(child *Node) *Node {
-	if child == nil || n == nil {
-		return nil
+	if child == nil {
+		return n
+	}
+	if n == nil {
+		n = NewNode()
+	}
+
+	// Do not add the instance to itself.
+	if n == child {
+		return n
 	}
 
 	child.parent = n
 	n.children = append(n.children, child)
-	return child
+	return n
 }
 
-// NewChildren creates a child node.
+// NewChildren creates and returns a new child node, provided the instance
+// is not nil.
 func (n *Node) NewChild() *Node {
-	return n.AddChild(NewNode())
+	if n == nil {
+		return nil
+	}
+	c := NewNode()
+	n.AddChild(c)
+	return c
 }
 
 // NewSibling creates a sibling node of the instance.  The sibling and the
