@@ -6,16 +6,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNodeJSON(t *testing.T) {
+func TestNodePretty(t *testing.T) {
 	tests := []struct {
 		in  *Node
-		out *JSON
+		out *Pretty
 	}{
 		// Fails
 		{new(Node), nil},
 		{
 			&Node{verb: Must, phrase: "test phrase"},
-			&JSON{Verb: VerbStringHuman(Must), Phrase: "test phrase"},
+			&Pretty{Verb: VerbStringHuman(Must), Phrase: "test phrase"},
 		},
 		{
 			&Node{
@@ -25,17 +25,17 @@ func TestNodeJSON(t *testing.T) {
 					&Node{verb: Should, phrase: "c1 phrase"},
 				},
 			},
-			&JSON{
+			&Pretty{
 				Verb: VerbStringHuman(Should),
-				Children: []*JSON{
-					&JSON{Verb: VerbStringHuman(MustNot), Phrase: "c0 phrase"},
-					&JSON{Verb: VerbStringHuman(Should), Phrase: "c1 phrase"},
+				Children: []*Pretty{
+					&Pretty{Verb: VerbStringHuman(MustNot), Phrase: "c0 phrase"},
+					&Pretty{Verb: VerbStringHuman(Should), Phrase: "c1 phrase"},
 				},
 			},
 		},
 	}
 
 	for _, tt := range tests {
-		assert.Equal(t, tt.out, tt.in.JSON())
+		assert.Equal(t, tt.out, tt.in.Pretty())
 	}
 }

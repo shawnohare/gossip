@@ -278,25 +278,25 @@ func (n *Node) String() string {
 	return s
 }
 
-func (n *Node) JSON() *JSON {
+func (n *Node) Pretty() *Pretty {
 	if !n.IsValid() {
 		return nil
 	}
 
-	jnode := &JSON{
+	p := &Pretty{
 		Verb:   n.VerbString(),
 		Phrase: n.phrase,
 	}
 
 	if n.IsLeaf() {
-		return jnode
+		return p
 	}
 
-	jnode.Children = make([]*JSON, len(n.children))
+	p.Children = make([]*Pretty, len(n.children))
 	for i, child := range n.children {
-		jnode.Children[i] = child.JSON()
+		p.Children[i] = child.Pretty()
 	}
-	return jnode
+	return p
 }
 
 // NewNode produces a leaf node with the default modal verb of Should,
