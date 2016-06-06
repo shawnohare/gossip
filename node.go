@@ -177,15 +177,6 @@ func (n *Node) NewChild() *Node {
 	return c
 }
 
-// NewSibling creates a sibling node of the instance.  The sibling and the
-// instance have the same parent, which also contains both nodes as children.
-// func (n *Node) NewSibling() (*Node, error) {
-// 	if n == nil || n.parent == nil {
-// 		return nil, errors.New("Cannot create sibling Query without a parent.")
-// 	}
-// 	return n.parent.NewChild(), nil
-// }
-
 // Equals reports whether the instance and input define semantically
 // equal parsed subtrees.
 func (n *Node) Equals(m *Node) bool {
@@ -285,6 +276,27 @@ func (n *Node) String() string {
 
 	s := vs + "[" + strings.Join(strs, ", ") + "]"
 	return s
+}
+
+func (n *Node) JSON() *JSON {
+	if !n.IsValid() {
+		return nil
+	}
+
+	jnode := &JSON{
+		Verb:   n.VerbString(),
+		Phrase: n.phrase,
+	}
+
+	if n.IsLeaf() {
+		return jnode
+	}
+
+	jnode.Children = make([]*JSON, len(n.children))
+	for i, child := range n.children {
+		jnode.Children[i] = child.JSON()
+	}
+	return jnode
 }
 
 // NewNode produces a leaf node with the default modal verb of Should,
