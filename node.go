@@ -1,14 +1,20 @@
 package gossip
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // Node in a parsed search tree.  It contains pointers to its parent node,
-// if any, and all of its children.
+// if any, and all of its children.  Generally it is expected that the
+// Node getter and setter methods are used to access the exported fields.
+// These fields are exported primarily so that an instance can be marshalled
+// into a JSON string.
 type Node struct {
-	parent   *Node
-	children []*Node
-	verb     rune   // modal verb of the query: must (not), should.
-	phrase   string // phrase literal if this query is a leaf.
+	Parent   *Node   `json:"-"`
+	Children []*Node `json:"children"`
+	Verb     Verb    `json:"verb"`   // Modal verb of the query: must (not), should.
+	Phrase   string  `json:"phrase"` // Phrase literal if this query is a leaf.
 }
 
 // IsLeaf reports whether the node is a leaf.
@@ -17,84 +23,104 @@ func (n *Node) IsLeaf() bool {
 	if n == nil {
 		return false
 	}
-	return len(n.Children()) == 0
+	return len(n.Children) == 0
 }
 
 // IsValid recursively determines if every node is valid.
+// Conditions that lead to an invalid node are:
+// - The instance is nil.
+// - The instance is its own parent or contains itself as a child.
+// - The instance's verb is not one of the constants Must, Should, MustNot.
+// - The instance is a leaf with an empty phrase.
+// - The instance is a non-leaf but contains a phrase.
+// - Any child is invalid.
 func (n *Node) IsValid() bool {
 	if n == nil {
 		return false
 	}
 
-	if n.parent == n {
+	if n.Parent == n {
 		return false
 	}
 
-	if !IsVerb(n.verb) {
+	if !n.Verb.IsValid() {
 		return false
 	}
 
-	if n.IsLeaf() {
-		return n.phrase != "" && IsVerb(n.verb)
+	if n.IsLeaf() && n.Phrase == "" {
+		return false
 	}
 
 	// Preliminary non-leaf check.
-	if !n.IsLeaf() && n.phrase != "" {
+	if !n.IsLeaf() && n.Phrase != "" {
 		return false
 	}
-	// Check the children of a valid non-leaf.
-	for _, child := range n.Children() {
-		if !child.IsValid() {
+
+	for _, child := range n.GetChildren() {
+		if !child.IsValid() || child == n || child.Parent != n {
 			return false
 		}
 	}
 	return true
 }
 
-// Parent of the instance.  Is nil if the node is a root.
-func (n *Node) Parent() *Node {
+// GetParent is a helper get method defined for all instances.
+func (n *Node) GetParent() *Node {
 	if n == nil {
 		return nil
 	}
-	return n.parent
+	return n.Parent
 }
 
-// Children of the instance.
-func (n *Node) Children() []*Node {
+// GetChildren is a helper get method defined for all instances.
+func (n *Node) GetChildren() []*Node {
 	if n == nil {
 		return nil
 	}
-	return n.children
+	return n.Children
 }
 
-func (n *Node) Phrase() string {
-	if n.IsValid() {
-		return n.phrase
+// Tree sets the Parent field of the instance's descents to the appropriate
+// node.  This effectively creates a subtree with the instance as a root,
+// although the instance's Parent is not removed.
+func (n *Node) Tree() *Node {
+	if n == nil || n.IsLeaf() {
+		return n
 	}
-	return ""
-}
 
-// Verb returns the integer code the the modal verb attached to the node.
-func (n *Node) Verb() rune {
-	if n.IsValid() {
-		return n.verb
+	for _, child := range n.Children {
+		_ = child.SetParent(n).Tree()
 	}
-	return VerbError
+
+	return n
 }
 
-// VerbString returns a human readable version of the node's modal verb.
-func (n *Node) VerbString() string {
-	return VerbStringHuman(n.Verb())
+// GetPhrase is a helper get method defined for all instances.
+func (n *Node) GetPhrase() string {
+	if n == nil {
+		return ""
+	}
+	return n.Phrase
+}
+
+// GetVerb returns the integer code the the modal verb associated to the node.
+func (n *Node) GetVerb() Verb {
+	if n == nil {
+		return VerbError
+	}
+	return n.Verb
 }
 
 // SetParent sets the node's parent and returns the instance.  If the
-// parent input is the node itself, nothing is set.
+// parent input is the node itself, nothing is set.  This will not add the
+// instance to the parent node's children, however.  For this functionality,
+// see the AddChild function.
 func (n *Node) SetParent(parent *Node) *Node {
 	if n == nil {
 		n = NewNode()
 	}
 	if n != parent {
-		n.parent = parent
+		n.Parent = parent
 	}
 	return n
 }
@@ -104,39 +130,34 @@ func (n *Node) SetPhrase(phrase string) *Node {
 	if n == nil {
 		n = NewNode()
 	}
-	n.phrase = phrase
+	n.Phrase = phrase
 	return n
 }
 
-// SetVerb checks whether the input is a valid modal verb representation and
-// if so sets the node's verb attribute and returns the instance.
-// For example:
-//   var n *node
-//   n = n.SetVerb(Must)
-func (n *Node) SetVerb(verb rune) *Node {
+// SetVerb sets the node's Verb field to the input verb, regardless
+// of the input's semantic validity.
+func (n *Node) SetVerb(verb Verb) *Node {
 	if n == nil {
 		n = NewNode()
 	}
-	if IsVerb(verb) {
-		n.verb = verb
-	}
+	n.Verb = verb
 	return n
 }
 
-// IsRoot reports if the node is the root of a tree.
+// IsRoot reports if the non-nil node is the root of a tree.
 func (n *Node) IsRoot() bool {
 	if n == nil {
 		return false
 	}
-	return n.Parent() == nil
+	return n.GetParent() == nil
 }
 
 // depth is a tail recursive node depth function.
 func depth(node *Node, k int) int {
-	if node.Parent() == nil {
+	if node.GetParent() == nil {
 		return k
 	}
-	return depth(node.Parent(), k+1)
+	return depth(node.GetParent(), k+1)
 }
 
 // Depth reports the node's depth in the tree of which it a member.
@@ -161,8 +182,8 @@ func (n *Node) AddChild(child *Node) *Node {
 		return n
 	}
 
-	child.parent = n
-	n.children = append(n.children, child)
+	child.Parent = n
+	n.Children = append(n.Children, child)
 	return n
 }
 
@@ -184,29 +205,28 @@ func (n *Node) Equals(m *Node) bool {
 		return false
 	}
 
-	if len(n.children) != len(m.children) {
+	if len(n.Children) != len(m.Children) {
 		return false
 	}
 
 	if n.IsLeaf() && m.IsLeaf() {
-		return n.phrase == m.phrase && n.verb == m.verb
+		return n.Phrase == m.Phrase && n.Verb == m.Verb
 	}
 
-	ok := true
-	for i, ni := range n.children {
-		if !ni.Equals(m.children[i]) {
+	for i, ni := range n.Children {
+		if !ni.Equals(m.Children[i]) {
 			return false
 		}
 	}
-	return ok
+	return true
 }
 
 // Root returns the root node of the tree containing the instance.
 func (n *Node) Root() *Node {
 
 	tmp := n
-	for tmp.Parent() != nil {
-		tmp = tmp.Parent()
+	for tmp.GetParent() != nil {
+		tmp = tmp.GetParent()
 	}
 
 	return tmp
@@ -223,7 +243,7 @@ func leaves(remaining []*Node, current []*Node) []*Node {
 		if node.IsLeaf() {
 			current = append(current, node)
 		} else {
-			newRemaining = append(newRemaining, node.Children()...)
+			newRemaining = append(newRemaining, node.GetChildren()...)
 		}
 	}
 	return leaves(newRemaining, current)
@@ -234,7 +254,7 @@ func (n *Node) Leaves() []*Node {
 	if n.IsLeaf() {
 		return []*Node{n}
 	}
-	return leaves(n.Children(), nil)
+	return leaves(n.GetChildren(), nil)
 }
 
 // Height returns the height of the node.  This is the max depth of
@@ -255,18 +275,17 @@ func (n *Node) String() string {
 	}
 
 	// Just return the phrase if the root is a leaf.
-	vs := VerbString(n.verb)
 	if n.IsLeaf() {
 		if n.IsValid() {
-			return vs + `"` + n.Phrase() + `"`
+			return fmt.Sprintf("%s\"%s\"", n.Verb, n.Phrase)
 		}
 		return ""
 	}
 
 	// Otherwise convert each child to a string.  The result might
 	// look something like [+w0 +"phrase1" -[...]]
-	strs := make([]string, len(n.children))
-	for i, child := range n.children {
+	strs := make([]string, len(n.Children))
+	for i, child := range n.Children {
 		substring := child.String()
 		if substring == "" {
 			return ""
@@ -274,29 +293,7 @@ func (n *Node) String() string {
 		strs[i] = substring
 	}
 
-	s := vs + "[" + strings.Join(strs, ", ") + "]"
-	return s
-}
-
-func (n *Node) Pretty() *Pretty {
-	if !n.IsValid() {
-		return nil
-	}
-
-	p := &Pretty{
-		Verb:   n.VerbString(),
-		Phrase: n.phrase,
-	}
-
-	if n.IsLeaf() {
-		return p
-	}
-
-	p.Children = make([]*Pretty, len(n.children))
-	for i, child := range n.children {
-		p.Children[i] = child.Pretty()
-	}
-	return p
+	return fmt.Sprintf("%s[%s]", n.Verb, strings.Join(strs, ", "))
 }
 
 // NewNode produces a leaf node with the default modal verb of Should,
@@ -304,8 +301,8 @@ func (n *Node) Pretty() *Pretty {
 // is set.
 func NewNode() *Node {
 	return &Node{
-		verb:   Should,
-		phrase: "",
+		Verb:   Should,
+		Phrase: "",
 	}
 }
 

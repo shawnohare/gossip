@@ -13,20 +13,20 @@ func TestParsePasses(t *testing.T) {
 		in  string
 		out *Node
 	}{
-		{"w", &Node{phrase: "w", verb: Should}},
+		{"w", &Node{Phrase: "w", Verb: Should}},
 		//
 		{
 			`+"machine learning"`,
-			&Node{verb: Must, phrase: "machine learning"},
+			&Node{Verb: Must, Phrase: "machine learning"},
 		},
 		//
 		{
 			"x y",
 			&Node{
-				verb: Should,
-				children: []*Node{
-					{phrase: "x", verb: Should},
-					{phrase: "y", verb: Should},
+				Verb: Should,
+				Children: []*Node{
+					{Phrase: "x", Verb: Should},
+					{Phrase: "y", Verb: Should},
 				},
 			},
 		},
@@ -34,10 +34,10 @@ func TestParsePasses(t *testing.T) {
 		{
 			"x,y",
 			&Node{
-				verb: Should,
-				children: []*Node{
-					{phrase: "x", verb: Should},
-					{phrase: "y", verb: Should},
+				Verb: Should,
+				Children: []*Node{
+					{Phrase: "x", Verb: Should},
+					{Phrase: "y", Verb: Should},
 				},
 			},
 		},
@@ -45,10 +45,10 @@ func TestParsePasses(t *testing.T) {
 		{
 			"x,+y",
 			&Node{
-				verb: Should,
-				children: []*Node{
-					{phrase: "x", verb: Should},
-					{phrase: "y", verb: Must},
+				Verb: Should,
+				Children: []*Node{
+					{Phrase: "x", Verb: Should},
+					{Phrase: "y", Verb: Must},
 				},
 			},
 		},
@@ -56,10 +56,10 @@ func TestParsePasses(t *testing.T) {
 		{
 			"x, +y",
 			&Node{
-				verb: Should,
-				children: []*Node{
-					{phrase: "x", verb: Should},
-					{phrase: "y", verb: Must},
+				Verb: Should,
+				Children: []*Node{
+					{Phrase: "x", Verb: Should},
+					{Phrase: "y", Verb: Must},
 				},
 			},
 		},
@@ -67,10 +67,10 @@ func TestParsePasses(t *testing.T) {
 		{
 			"-x +y",
 			&Node{
-				verb: Should,
-				children: []*Node{
-					{phrase: "x", verb: MustNot},
-					{phrase: "y", verb: Must},
+				Verb: Should,
+				Children: []*Node{
+					{Phrase: "x", Verb: MustNot},
+					{Phrase: "y", Verb: Must},
 				},
 			},
 		},
@@ -78,15 +78,15 @@ func TestParsePasses(t *testing.T) {
 		{
 			"x +[+y -z]",
 			&Node{
-				verb: Should,
-				children: []*Node{
-					{phrase: "x", verb: Should},
+				Verb: Should,
+				Children: []*Node{
+					{Phrase: "x", Verb: Should},
 					// Subquery +[+y - z]
 					{
-						verb: Must,
-						children: []*Node{
-							{phrase: "y", verb: Must},
-							{phrase: "z", verb: MustNot},
+						Verb: Must,
+						Children: []*Node{
+							{Phrase: "y", Verb: Must},
+							{Phrase: "z", Verb: MustNot},
 						},
 					},
 				},
@@ -96,15 +96,15 @@ func TestParsePasses(t *testing.T) {
 		{
 			"x, +[+y, -z]",
 			&Node{
-				verb: Should,
-				children: []*Node{
-					{phrase: "x", verb: Should},
+				Verb: Should,
+				Children: []*Node{
+					{Phrase: "x", Verb: Should},
 					// Subquery +[+y - z]
 					{
-						verb: Must,
-						children: []*Node{
-							{phrase: "y", verb: Must},
-							{phrase: "z", verb: MustNot},
+						Verb: Must,
+						Children: []*Node{
+							{Phrase: "y", Verb: Must},
+							{Phrase: "z", Verb: MustNot},
 						},
 					},
 				},
@@ -114,17 +114,17 @@ func TestParsePasses(t *testing.T) {
 		{
 			`+"phrase one", [+"phrase 2", -z]`,
 			&Node{
-				verb: Should,
-				children: []*Node{
+				Verb: Should,
+				Children: []*Node{
 					{
-						verb:   Must,
-						phrase: "phrase one"},
+						Verb:   Must,
+						Phrase: "phrase one"},
 					// Subquery +[+y - z]
 					{
-						verb: Should,
-						children: []*Node{
-							{phrase: "phrase 2", verb: Must},
-							{phrase: "z", verb: MustNot},
+						Verb: Should,
+						Children: []*Node{
+							{Phrase: "phrase 2", Verb: Must},
+							{Phrase: "z", Verb: MustNot},
 						},
 					},
 				},
@@ -134,17 +134,17 @@ func TestParsePasses(t *testing.T) {
 		{
 			`+"phrase one" [+"phrase 2" -z]`,
 			&Node{
-				verb: Should,
-				children: []*Node{
+				Verb: Should,
+				Children: []*Node{
 					{
-						verb:   Must,
-						phrase: "phrase one"},
+						Verb:   Must,
+						Phrase: "phrase one"},
 					// Subquery +[+y - z]
 					{
-						verb: Should,
-						children: []*Node{
-							{phrase: "phrase 2", verb: Must},
-							{phrase: "z", verb: MustNot},
+						Verb: Should,
+						Children: []*Node{
+							{Phrase: "phrase 2", Verb: Must},
+							{Phrase: "z", Verb: MustNot},
 						},
 					},
 				},
@@ -156,10 +156,10 @@ func TestParsePasses(t *testing.T) {
 		tree, err := Parse(tt.in)
 		msg := fmt.Sprintf(
 			"Fails test case (%d)\ninput: %s\ntree: %#v\ntree.String(): %s\nchildren %#v",
-			i, tt.in, tree, tree, tree.Root().Children(),
+			i, tt.in, tree, tree, tree.Root().GetChildren(),
 		)
 		assert.NoError(t, err, msg)
-		assert.True(t, tt.out.Equals(tree), msg)
+		assert.True(t, tt.out.Tree().Equals(tree.Tree()), msg)
 	}
 }
 
@@ -214,16 +214,16 @@ func ExampleParse() {
 	search := `"data science" "machine learning" +statistics -hype`
 	tree, _ := Parse(search)
 	fmt.Println(tree)
-	// Output: ["data science", "machine learning", +"statistics", -"hype"]
+	// Output: ~[~"data science", ~"machine learning", +"statistics", -"hype"]
 }
 
 func ExampleLeafNode() {
 	search := `"data science" "machine learning" +statistics -hype`
-	tree, _ := Parse(search)
+	node, _ := Parse(search)
 
 	var children []*Node
-	children = tree.Children()
+	children = node.GetChildren()
 	leaf := children[2]
-	fmt.Printf("%s contain %s", leaf.VerbString(), leaf.Phrase())
+	fmt.Printf("%s contain %s", leaf.Verb.Pretty(), leaf.Phrase)
 	// Output: must contain statistics
 }

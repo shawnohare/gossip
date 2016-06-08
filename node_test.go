@@ -16,11 +16,11 @@ func TestNodeMethodsForNil(t *testing.T) {
 	assert.Nil(t, n.Root())
 	assert.Len(t, n.Leaves(), 0)
 	assert.False(t, n.IsLeaf())
-	assert.Equal(t, VerbError, n.Verb())
-	assert.Len(t, n.Children(), 0)
-	assert.Equal(t, "", n.Phrase())
+	assert.Equal(t, VerbError, n.GetVerb())
+	assert.Len(t, n.GetChildren(), 0)
+	assert.Equal(t, "", n.GetPhrase())
 	assert.Equal(t, 0, n.Depth())
-	assert.Nil(t, n.Parent())
+	assert.Nil(t, n.GetParent())
 	assert.NotNil(t, n.AddChild(&Node{}))
 	assert.Nil(t, n.AddChild(nil))
 	assert.Nil(t, n.NewChild())
@@ -33,19 +33,19 @@ func TestNodeAddChildForNil(t *testing.T) {
 	var n *Node
 	n = n.AddChild(NewNode())
 	assert.NotNil(t, n)
-	assert.Len(t, n.Children(), 1)
+	assert.Len(t, n.GetChildren(), 1)
 }
 
 func TestNodeAddChildSelf(t *testing.T) {
 	m := NewNode()
 	m.AddChild(m)
-	assert.Len(t, m.Children(), 0)
+	assert.Len(t, m.GetChildren(), 0)
 }
 
 func TestNodeSetParentSelf(t *testing.T) {
 	m := NewNode()
 	m.SetParent(m)
-	assert.Nil(t, m.Parent())
+	assert.Nil(t, m.GetParent())
 }
 
 func TestNodeIsLeafAfterAdds(t *testing.T) {
@@ -55,14 +55,14 @@ func TestNodeIsLeafAfterAdds(t *testing.T) {
 	}{
 		{nil, false},
 		{NewNode(), true},
-		{NewNode().NewChild().Parent(), false},
-		{NewNode().AddChild(NewNode()).Parent(), false},
+		{NewNode().NewChild().GetParent(), false},
+		{NewNode().AddChild(NewNode()).GetParent(), false},
 		// AddChild(nil) is nil, so its parent is also nil, hence not a leaf.
-		{NewNode().AddChild(nil).Parent(), false},
+		{NewNode().AddChild(nil).GetParent(), false},
 	}
 
 	for i, tt := range tests {
-		msg := fmt.Sprintf("Test case (%d) with children %#v fails", i, tt.in.Children())
+		msg := fmt.Sprintf("Test case (%d) with children %#v fails", i, tt.in.GetChildren())
 		actual := tt.in.IsLeaf()
 		assert.Equal(t, tt.out, actual, msg)
 	}
@@ -71,39 +71,20 @@ func TestNodeIsLeafAfterAdds(t *testing.T) {
 func TestNodeVerb(t *testing.T) {
 	tests := []struct {
 		in  *Node
-		out rune
+		out Verb
 	}{
 		{nil, VerbError},
-		{&Node{}, VerbError},
-		{&Node{verb: Must}, VerbError},
-		{&Node{verb: Must, phrase: "a"}, Must},
-		{&Node{verb: Should, phrase: "a"}, Should},
-		{&Node{verb: MustNot, phrase: "a"}, MustNot},
+		{&Node{}, 0},
+		{&Node{Verb: Must}, Must},
+		{&Node{Verb: Should}, Should},
+		{&Node{Verb: MustNot}, MustNot},
+		{&Node{Verb: VerbError}, VerbError},
 	}
 
 	for i, tt := range tests {
 		msg := fmt.Sprintf("Test case (%d) %#v fails", i, tt)
-		actual := tt.in.Verb()
+		actual := tt.in.GetVerb()
 		assert.Equal(t, tt.out, actual, msg)
-	}
-}
-
-func TestNodeVerbString(t *testing.T) {
-	tests := []struct {
-		in *Node
-	}{
-		{nil},
-		{&Node{}},
-		{&Node{verb: Must}},
-		{&Node{verb: Must, phrase: "a"}},
-		{&Node{verb: Should, phrase: "a"}},
-		{&Node{verb: MustNot, phrase: "a"}},
-	}
-
-	for i, tt := range tests {
-		msg := fmt.Sprintf("Test case (%d) %#v fails", i, tt)
-		actual := tt.in.VerbString()
-		assert.Equal(t, VerbStringHuman(tt.in.Verb()), actual, msg)
 	}
 }
 
@@ -111,30 +92,30 @@ func TestNodeSetParent(t *testing.T) {
 	var n *Node
 	p := &Node{}
 	n = n.SetParent(p)
-	assert.Equal(t, p, n.parent)
+	assert.Equal(t, p, n.Parent)
 }
 
 func TestSetVerb(t *testing.T) {
 	var n *Node
 	n = n.SetVerb(Must)
-	assert.Equal(t, Must, n.verb)
+	assert.Equal(t, Must, n.Verb)
 }
 
 func TestSetVerbInvalidInput(t *testing.T) {
 	var n *Node
 	n = n.SetVerb(-10)
-	assert.Equal(t, Should, n.verb)
+	assert.Equal(t, Verb(-10), n.Verb)
 }
 
 func TestSetPhrase(t *testing.T) {
 	var n *Node
 	n = n.SetPhrase("0")
-	assert.Equal(t, "0", n.phrase)
+	assert.Equal(t, "0", n.Phrase)
 }
 
 func TestNodeIsValid(t *testing.T) {
 	n := NewNode()
-	n.parent = n
+	n.Parent = n
 
 	tests := []struct {
 		in  *Node
@@ -145,13 +126,13 @@ func TestNodeIsValid(t *testing.T) {
 		{n, false}, // parent is self
 		{
 			&Node{
-				children: []*Node{
+				Children: []*Node{
 					&Node{
-						verb:   Must,
-						phrase: "x1",
+						Verb:   Must,
+						Phrase: "x1",
 					},
 				},
-				phrase: "this phrase invalidates the node",
+				Phrase: "this phrase invalidates the node",
 			},
 			false,
 		},
@@ -162,7 +143,17 @@ func TestNodeIsValid(t *testing.T) {
 		actual := tt.in.IsValid()
 		assert.Equal(t, tt.out, actual, msg)
 	}
+}
 
+func TestNodeTree(t *testing.T) {
+	r := NewNode()
+	c0 := NewNode()
+	c00 := NewNode()
+	c0.Children = []*Node{c00}
+	r.Children = []*Node{c0}
+	r.Tree()
+	assert.Equal(t, c00.Parent, c0)
+	assert.Equal(t, c0.Parent, r)
 }
 
 func TestNodeEquals(t *testing.T) {
@@ -173,30 +164,30 @@ func TestNodeEquals(t *testing.T) {
 	}{
 		{nil, nil, false},
 		{nil, &Node{}, false},
-		{nil, &Node{phrase: "x"}, false},
+		{nil, &Node{Phrase: "x"}, false},
 		{NewNode(), NewNode(), false},
-		{NewNode(), &Node{phrase: "x", verb: Should}, false},
-		{&Node{phrase: "x", verb: Should}, &Node{phrase: "y", verb: Should}, false},
-		{&Node{verb: Must, phrase: "x"}, &Node{verb: Should, phrase: "x"}, false},
-		{&Node{verb: Must, phrase: "x"}, &Node{verb: MustNot, phrase: "x"}, false},
-		{&Node{phrase: "x", verb: Should}, &Node{phrase: "x", verb: Should}, true},
-		// Basic test with children.
+		{NewNode(), &Node{Phrase: "x", Verb: Should}, false},
+		{&Node{Phrase: "x", Verb: Should}, &Node{Phrase: "y", Verb: Should}, false},
+		{&Node{Verb: Must, Phrase: "x"}, &Node{Verb: Should, Phrase: "x"}, false},
+		{&Node{Verb: Must, Phrase: "x"}, &Node{Verb: MustNot, Phrase: "x"}, false},
+		{&Node{Phrase: "x", Verb: Should}, &Node{Phrase: "x", Verb: Should}, true},
+		// 9. Basic test with children.
 		{
 			&Node{
-				verb: Should,
-				children: []*Node{
+				Verb: Should,
+				Children: []*Node{
 					&Node{
-						verb:   Must,
-						phrase: "x1",
+						Verb:   Must,
+						Phrase: "x1",
 					},
 				},
 			},
 			&Node{
-				verb: Should,
-				children: []*Node{
+				Verb: Should,
+				Children: []*Node{
 					&Node{
-						verb:   Must,
-						phrase: "x1",
+						Verb:   Must,
+						Phrase: "x1",
 					},
 				},
 			},
@@ -205,28 +196,28 @@ func TestNodeEquals(t *testing.T) {
 		// 10. Trees of height 2.
 		{
 			&Node{
-				verb: Should,
-				children: []*Node{
+				Verb: Should,
+				Children: []*Node{
 					&Node{
-						verb: Should,
-						children: []*Node{
+						Verb: Should,
+						Children: []*Node{
 							&Node{
-								verb:   Must,
-								phrase: "x1",
+								Verb:   Must,
+								Phrase: "x1",
 							},
 						},
 					},
 				},
 			},
 			&Node{
-				verb: Should,
-				children: []*Node{
+				Verb: Should,
+				Children: []*Node{
 					&Node{
-						verb: Should,
-						children: []*Node{
+						Verb: Should,
+						Children: []*Node{
 							&Node{
-								verb:   Must,
-								phrase: "x1",
+								Verb:   Must,
+								Phrase: "x1",
 							},
 						},
 					},
@@ -237,19 +228,19 @@ func TestNodeEquals(t *testing.T) {
 		// At least one node is invalid.
 		{
 			&Node{
-				children: []*Node{
+				Children: []*Node{
 					&Node{
-						verb:   Must,
-						phrase: "x1",
+						Verb:   Must,
+						Phrase: "x1",
 					},
 				},
-				phrase: "this phrase invalidates the node",
+				Phrase: "this phrase invalidates the node",
 			},
 			&Node{
-				children: []*Node{
+				Children: []*Node{
 					&Node{
-						verb:   Must,
-						phrase: "x1",
+						Verb:   Must,
+						Phrase: "x1",
 					},
 				},
 			},
@@ -258,24 +249,24 @@ func TestNodeEquals(t *testing.T) {
 		// Children are different lengths.
 		{
 			&Node{
-				verb: Should,
-				children: []*Node{
+				Verb: Should,
+				Children: []*Node{
 					&Node{
-						verb:   Must,
-						phrase: "x1",
+						Verb:   Must,
+						Phrase: "x1",
 					},
 				},
 			},
 			&Node{
-				verb: Should,
-				children: []*Node{
+				Verb: Should,
+				Children: []*Node{
 					&Node{
-						verb:   Must,
-						phrase: "x1",
+						Verb:   Must,
+						Phrase: "x1",
 					},
 					&Node{
-						verb:   Must,
-						phrase: "x2",
+						Verb:   Must,
+						Phrase: "x2",
 					},
 				},
 			},
@@ -284,20 +275,20 @@ func TestNodeEquals(t *testing.T) {
 		// Children are different.
 		{
 			&Node{
-				verb: Should,
-				children: []*Node{
+				Verb: Should,
+				Children: []*Node{
 					&Node{
-						verb:   Must,
-						phrase: "x",
+						Verb:   Must,
+						Phrase: "x",
 					},
 				},
 			},
 			&Node{
-				verb: Should,
-				children: []*Node{
+				Verb: Should,
+				Children: []*Node{
 					&Node{
-						verb:   Must,
-						phrase: "y",
+						Verb:   Must,
+						Phrase: "y",
 					},
 				},
 			},
@@ -307,7 +298,7 @@ func TestNodeEquals(t *testing.T) {
 
 	for i, tt := range tests {
 		msg := fmt.Sprintf("Fails test case %d", i)
-		actual := tt.n0.Equals(tt.n1)
+		actual := tt.n0.Tree().Equals(tt.n1.Tree())
 		assert.Equal(t, tt.out, actual, msg)
 	}
 }
@@ -319,14 +310,14 @@ func TestNodePhrase(t *testing.T) {
 	}{
 		{nil, ""},
 		{&Node{}, ""},
-		{&Node{parent: &Node{}}, ""},
-		{&Node{phrase: "x", verb: Should}, "x"},
-		{&Node{children: []*Node{&Node{phrase: "x", verb: Should}}}, ""},
+		{&Node{Parent: &Node{}}, ""},
+		{&Node{Phrase: "x", Verb: Should}, "x"},
+		{&Node{Children: []*Node{&Node{Phrase: "x", Verb: Should}}}, ""},
 	}
 
 	for i, tt := range tests {
 		msg := fmt.Sprintf("Test case (%d) %#v fails", i, tt)
-		actual := tt.in.Phrase()
+		actual := tt.in.GetPhrase()
 		assert.Equal(t, tt.out, actual, msg)
 	}
 }
@@ -338,8 +329,8 @@ func TestNodeDepth(t *testing.T) {
 	}{
 		{nil, 0},
 		{&Node{}, 0},
-		{&Node{parent: &Node{}}, 1},
-		{&Node{parent: &Node{parent: &Node{}}}, 2},
+		{&Node{Parent: &Node{}}, 1},
+		{&Node{Parent: &Node{Parent: &Node{}}}, 2},
 	}
 
 	for i, tt := range tests {
@@ -439,8 +430,8 @@ func TestNodeString(t *testing.T) {
 		{nil, ""},
 		{NewNode(), ""},
 		{h1, ""},
-		{h2, `["x", "y"]`},
-		{h3, `[["x", "y"], [+"v", -"w"]]`},
+		{h2, `~[~"x", ~"y"]`},
+		{h3, `~[~[~"x", ~"y"], ~[+"v", -"w"]]`},
 	}
 
 	for i, tt := range tests {

@@ -14,7 +14,7 @@ const (
 	Minus        rune = 0x0000002d
 	LeftBracket  rune = 0x0000005b
 	RightBracket rune = 0x0000005d
-	VerticalLine rune = 0x0000007c
+	Tilde        rune = 0x0000007e
 	// LeftParen    rune = 0x00000028
 	// RightParen   rune = 0x00000029
 	// At           rune = 0x00000040
@@ -28,54 +28,16 @@ const (
 	PhraseDelim   rune = Quote
 )
 
-// Modal verbs.
-const (
-	VerbError rune = -2
-	Should    rune = VerticalLine
-	MustNot   rune = Minus
-	Must      rune = Plus
-	// VerbUnknown rune = -3
-)
-
 var reservedRuneLookup map[rune]struct{} = map[rune]struct{}{
-	Space:        empty,
-	Comma:        empty,
-	Quote:        empty,
-	Plus:         empty,
-	Minus:        empty,
-	VerticalLine: empty,
-	LeftBracket:  empty,
-	RightBracket: empty,
+	Space:        struct{}{},
+	Comma:        struct{}{},
+	Quote:        struct{}{},
+	Plus:         struct{}{},
+	Minus:        struct{}{},
+	Tilde:        struct{}{},
+	LeftBracket:  struct{}{},
+	RightBracket: struct{}{},
 }
-
-var verbStringsForHumans = map[rune]string{
-	Must:      "must",
-	MustNot:   "must not",
-	Should:    "should",
-	VerbError: "_error_",
-}
-
-var verbStrings = map[rune]string{
-	Must:      "+",
-	MustNot:   "-",
-	Should:    "",
-	VerbError: "_error_",
-}
-
-// VerbString is used for constructing Tree strings. If the verb is unknown,
-// an empty string is returned.
-func VerbString(verb rune) string {
-	return verbStrings[verb]
-}
-
-// VerbStringHuman converts an integer modal verb code to
-// its human readable counterpart. If the verb is unknown, an empty string
-// is returned.
-func VerbStringHuman(verb rune) string {
-	return verbStringsForHumans[verb]
-}
-
-var empty struct{}
 
 func IsReserved(r rune) bool {
 	_, ok := reservedRuneLookup[r]
@@ -97,26 +59,6 @@ func IsSubqueryStart(r rune) bool {
 // IsSubqueryEnd states if the input denotes the end of a nested subquery.
 func IsSubqueryEnd(r rune) bool {
 	return r == SubqueryEnd
-}
-
-// IsVerb states if the input represents a modal verb such as "must".
-func IsVerb(r rune) bool {
-	return r == Should || r == Must || r == MustNot
-}
-
-// IsMust states if the input represents the modal verb "must".
-func IsMust(r rune) bool {
-	return r == Must
-}
-
-// IsMustNot states if the input represents the modal verb "must not".
-func IsMustNot(r rune) bool {
-	return r == MustNot
-}
-
-// IsShould states if the input represents the modal verb "must not".
-func IsShould(r rune) bool {
-	return r == Should
 }
 
 // IsPhraseDelim states if the input indicates the start of a phrase literal.
@@ -173,7 +115,7 @@ func IsPairValid(prev rune, curr rune) bool {
 
 	var ok bool
 	switch {
-	case IsVerb(c):
+	case IsRuneVerb(c):
 		// Fail if last or second condition not met.
 		ok = !last && (first || lit || IsSubqueryStart(p) || IsSeparator(p))
 
@@ -186,11 +128,11 @@ func IsPairValid(prev rune, curr rune) bool {
 
 	case IsSubqueryEnd(c):
 		// Fail if first or previous is a verb.
-		ok = last || (!first && !IsVerb(p))
+		ok = last || (!first && !IsRuneVerb(p))
 
 	case IsSeparator(c):
 		// Previous cannot be a verb.
-		ok = !IsVerb(p)
+		ok = !IsRuneVerb(p)
 
 	case !IsReserved(c):
 		// Previous cannot be a subquery.

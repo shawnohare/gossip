@@ -8,20 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsVerbType(t *testing.T) {
-	assert.True(t, IsMust(Must))
-	assert.False(t, IsMust(Should))
-	assert.False(t, IsMust(0))
-
-	assert.True(t, IsMustNot(MustNot))
-	assert.False(t, IsMustNot(Should))
-	assert.False(t, IsMustNot(0))
-
-	assert.True(t, IsShould(Should))
-	assert.False(t, IsShould(Must))
-	assert.False(t, IsShould(0))
-}
-
 func TestNextReservedRune(t *testing.T) {
 	tests := []struct {
 		in string
@@ -34,8 +20,8 @@ func TestNextReservedRune(t *testing.T) {
 		{"[", SubqueryStart, 0},
 		{"0]2", SubqueryEnd, 1},
 		{`0"`, PhraseDelim, 1},
-		{`0+"567+"`, Must, 1},
-		{`0-"567+"`, MustNot, 1},
+		{`0+"567+"`, rune(Must), 1},
+		{`0-"567+"`, rune(MustNot), 1},
 		{`0123 "`, Space, 4},
 	}
 
@@ -67,8 +53,8 @@ func TestCheckReservedSingleton(t *testing.T) {
 		in  rune
 		out bool
 	}{
-		{Must, false},
-		{MustNot, false},
+		{rune(Must), false},
+		{rune(MustNot), false},
 		{PhraseDelim, false},
 		{SubqueryStart, false},
 		{SubqueryEnd, false},
@@ -94,26 +80,26 @@ func TestIsValidPair(t *testing.T) {
 		out  bool
 	}{
 		// current = plus
-		{Must, Must, false},
-		{MustNot, Must, false},
-		{PhraseDelim, Must, true},
-		{SubqueryStart, Must, true},
-		{SubqueryEnd, Must, false},
-		{Space, Must, true},
-		{e, Must, true},
-		{a, Must, false},
+		{rune(Must), rune(Must), false},
+		{rune(MustNot), rune(Must), false},
+		{PhraseDelim, rune(Must), true},
+		{SubqueryStart, rune(Must), true},
+		{SubqueryEnd, rune(Must), false},
+		{Space, rune(Must), true},
+		{e, rune(Must), true},
+		{a, rune(Must), false},
 		// current = minus
-		{Must, MustNot, false},
-		{MustNot, MustNot, false},
-		{PhraseDelim, MustNot, true},
-		{SubqueryStart, MustNot, true},
-		{SubqueryEnd, MustNot, false},
-		{Space, MustNot, true},
-		{e, MustNot, true},
-		{a, MustNot, false},
+		{rune(Must), rune(MustNot), false},
+		{rune(MustNot), rune(MustNot), false},
+		{PhraseDelim, rune(MustNot), true},
+		{SubqueryStart, rune(MustNot), true},
+		{SubqueryEnd, rune(MustNot), false},
+		{Space, rune(MustNot), true},
+		{e, rune(MustNot), true},
+		{a, rune(MustNot), false},
 		// current = quote
-		{Must, PhraseDelim, true},
-		{MustNot, PhraseDelim, true},
+		{rune(Must), PhraseDelim, true},
+		{rune(MustNot), PhraseDelim, true},
 		{PhraseDelim, PhraseDelim, true},
 		{SubqueryStart, PhraseDelim, true},
 		{SubqueryEnd, PhraseDelim, false},
@@ -121,8 +107,8 @@ func TestIsValidPair(t *testing.T) {
 		{e, PhraseDelim, true},
 		{a, PhraseDelim, false},
 		// current = subquery start
-		{Must, SubqueryStart, true},
-		{MustNot, SubqueryStart, true},
+		{rune(Must), SubqueryStart, true},
+		{rune(MustNot), SubqueryStart, true},
 		{PhraseDelim, SubqueryStart, true},
 		{SubqueryStart, SubqueryStart, true},
 		{SubqueryEnd, SubqueryStart, false},
@@ -130,8 +116,8 @@ func TestIsValidPair(t *testing.T) {
 		{e, SubqueryStart, true},
 		{a, SubqueryStart, false},
 		// current =Subuery end
-		{Must, SubqueryEnd, false},
-		{MustNot, SubqueryEnd, false},
+		{rune(Must), SubqueryEnd, false},
+		{rune(MustNot), SubqueryEnd, false},
 		{PhraseDelim, SubqueryEnd, true},
 		{SubqueryStart, SubqueryEnd, true},
 		{SubqueryEnd, SubqueryEnd, true},
@@ -139,8 +125,8 @@ func TestIsValidPair(t *testing.T) {
 		{e, SubqueryEnd, false},
 		{a, SubqueryEnd, true},
 		// current = space
-		{Must, Space, false},
-		{MustNot, Space, false},
+		{rune(Must), Space, false},
+		{rune(MustNot), Space, false},
 		{PhraseDelim, Space, true},
 		{SubqueryStart, Space, true},
 		{SubqueryEnd, Space, true},
@@ -148,8 +134,8 @@ func TestIsValidPair(t *testing.T) {
 		{e, Space, true},
 		{a, Space, true},
 		// non-reserved
-		{Must, a, true},
-		{MustNot, a, true},
+		{rune(Must), a, true},
+		{rune(MustNot), a, true},
 		{PhraseDelim, a, true},
 		{SubqueryStart, a, true},
 		{SubqueryEnd, a, false},
@@ -157,8 +143,8 @@ func TestIsValidPair(t *testing.T) {
 		{e, a, true},
 		{a, a, true},
 		// Last
-		{Must, e, false},
-		{MustNot, e, false},
+		{rune(Must), e, false},
+		{rune(MustNot), e, false},
 		{PhraseDelim, e, true},
 		{SubqueryStart, e, false},
 		{SubqueryEnd, e, true},
@@ -186,28 +172,28 @@ func TestValidTriple(t *testing.T) {
 		out  bool
 	}{
 		// Modal verbs
-		{Must, Must, a, false},
-		{MustNot, Must, a, false},
-		{Should, Must, a, false},
-		{SubqueryEnd, Must, a, false},
-		{Space, Must, Space, false},
-		{Space, Must, Comma, false},
-		{Space, Must, e, false},
-		{e, Must, e, false},
-		{Space, Must, Must, false},
-		{Space, Must, MustNot, false},
-		{Space, Must, Should, false},
-		{PhraseDelim, Must, a, true},
-		{SubqueryStart, Must, a, true},
-		{e, Must, a, true},
-		{Space, Must, a, true},
-		{Comma, Must, a, true},
+		{rune(Must), rune(Must), a, false},
+		{rune(MustNot), rune(Must), a, false},
+		{rune(Should), rune(Must), a, false},
+		{SubqueryEnd, rune(Must), a, false},
+		{Space, rune(Must), Space, false},
+		{Space, rune(Must), Comma, false},
+		{Space, rune(Must), e, false},
+		{e, rune(Must), e, false},
+		{Space, rune(Must), rune(Must), false},
+		{Space, rune(Must), rune(MustNot), false},
+		{Space, rune(Must), rune(Should), false},
+		{PhraseDelim, rune(Must), a, true},
+		{SubqueryStart, rune(Must), a, true},
+		{e, rune(Must), a, true},
+		{Space, rune(Must), a, true},
+		{Comma, rune(Must), a, true},
 		// Subquery starts
 		{SubqueryEnd, SubqueryStart, a, false},
 		{a, SubqueryStart, e, false},
 		{e, SubqueryStart, e, false},
 		{e, SubqueryStart, e, false},
-		{Must, SubqueryStart, a, true},
+		{rune(Must), SubqueryStart, a, true},
 	}
 
 	for i, tt := range tests {
@@ -232,56 +218,18 @@ func TestIndexNonPhraseRune(t *testing.T) {
 		{"[", SubqueryEnd, -1},
 		// {`"\"`, Escape, -1},
 		// {`012\"`, Escape, 3}, // 5
-		{`0123"567+"`, Must, -1},
+		{`0123"567+"`, rune(Must), -1},
 		{`0123"`, PhraseDelim, 4},
-		{`0123"567+"`, Must, -1},
+		{`0123"567+"`, rune(Must), -1},
 		{`w "[]"`, SubqueryStart, -1},
 		{"日本語", r1, 6}, // 10
-		{`日本語"+`, Must, -1},
-		{`+`, Must, 0},
+		{`日本語"+`, rune(Must), -1},
+		{`+`, rune(Must), 0},
 	}
 
 	for i, tt := range tests {
 		msg := fmt.Sprintf("Fails test case (%d) %#v", i, tt)
 		assert.Equal(t, tt.out, indexNonPhraseRune(tt.s, tt.r), msg)
-	}
-
-}
-
-func TestVerbStringForTree(t *testing.T) {
-	tests := []struct {
-		in  rune
-		out string
-	}{
-		{Must, verbStrings[Must]},
-		{Should, verbStrings[Should]},
-		{MustNot, verbStrings[MustNot]},
-		{VerbError, verbStrings[VerbError]},
-		{999, ""},
-	}
-
-	for i, tt := range tests {
-		msg := fmt.Sprintf("Fails test case (%d) %s", i, tt.in)
-		assert.Equal(t, tt.out, VerbString(tt.in), msg)
-	}
-
-}
-
-func TestVerbStringForHumans(t *testing.T) {
-	tests := []struct {
-		in  rune
-		out string
-	}{
-		{Must, verbStringsForHumans[Must]},
-		{Should, verbStringsForHumans[Should]},
-		{MustNot, verbStringsForHumans[MustNot]},
-		{VerbError, verbStringsForHumans[VerbError]},
-		{999, ""},
-	}
-
-	for i, tt := range tests {
-		msg := fmt.Sprintf("Fails test case (%d) %s", i, tt.in)
-		assert.Equal(t, tt.out, VerbStringHuman(tt.in), msg)
 	}
 
 }

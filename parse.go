@@ -17,7 +17,7 @@ import (
 // Semantically empty search phrases will yield a parse error.
 func Parse(s string) (*Node, error) {
 	var (
-		currVerb rune  = Should // modal verb to apply to children
+		currVerb Verb  = Should // modal verb to apply to children
 		i        int            // current index in input string
 		root     *Node = NewNode()
 		curr     *Node = root
@@ -48,8 +48,8 @@ func Parse(s string) (*Node, error) {
 			j += i // point j to loc in s of matched quotation mark
 
 			q := &Node{
-				verb:   currVerb,
-				phrase: s[i:j],
+				Verb:   currVerb,
+				Phrase: s[i:j],
 			}
 			if !q.IsValid() {
 				return nil, errors.New(ErrorEmptyQuery)
@@ -60,12 +60,12 @@ func Parse(s string) (*Node, error) {
 			currVerb = Should
 			i = j + width // advance head past matching quotation mark
 
-		case IsVerb(r):
+		case IsRuneVerb(r):
 			// Update state.  If we already remember a verb, the query is malformed.
 			if !checkReserved(s, r, i, width) {
 				return nil, errors.New(ErrorVerbSequence)
 			}
-			currVerb = r
+			currVerb = Verb(r)
 			i += width
 
 		// Replace the current node with a new child subquery node.
@@ -73,7 +73,7 @@ func Parse(s string) (*Node, error) {
 			if !checkReserved(s, r, i, width) {
 				return nil, errors.New(ErrorMalformedQuery)
 			}
-			child := &Node{verb: currVerb}
+			child := &Node{Verb: currVerb}
 			curr.AddChild(child)
 			curr = child
 			i += width
@@ -86,7 +86,7 @@ func Parse(s string) (*Node, error) {
 			if !curr.IsValid() {
 				return nil, errors.New(ErrorMalformedQuery)
 			}
-			curr = curr.Parent()
+			curr = curr.GetParent()
 			i += width
 
 		case IsSeparator(r):
@@ -107,7 +107,7 @@ func Parse(s string) (*Node, error) {
 
 			// This will add the node with phrase xyz for the bad
 			// query xyz+, but the error will be caught in the next check.
-			_ = curr.AddChild(&Node{verb: currVerb, phrase: s[i:j]})
+			_ = curr.AddChild(&Node{Verb: currVerb, Phrase: s[i:j]})
 
 			i = j
 			currVerb = Should
@@ -115,9 +115,9 @@ func Parse(s string) (*Node, error) {
 	}
 
 	// Collapse unnecessary hierarchy, and do a basic sanity check.
-	if len(root.children) == 1 && root.children[0].IsLeaf() {
-		root = root.children[0]
-		root.parent = nil
+	if len(root.Children) == 1 && root.Children[0].IsLeaf() {
+		root = root.Children[0]
+		root.Parent = nil
 	}
 
 	// Node checks are cheap.  Catches queries like "  ".
