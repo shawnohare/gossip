@@ -12,9 +12,9 @@ import (
 // into a JSON string.
 type Node struct {
 	Parent   *Node   `json:"-"`
-	Children []*Node `json:"children"`
-	Verb     Verb    `json:"verb"`   // Modal verb of the query: must (not), should.
-	Phrase   string  `json:"phrase"` // Phrase literal if this query is a leaf.
+	Children []*Node `json:"children,omitempty"`
+	Verb     Verb    `json:"verb,omitempty"`   // Modal verb of the query: must (not), should.
+	Phrase   string  `json:"phrase,omitempty"` // Phrase literal if this query is a leaf.
 }
 
 // IsLeaf reports whether the node is a leaf.
