@@ -114,8 +114,12 @@ func TestSetPhrase(t *testing.T) {
 }
 
 func TestNodeIsValid(t *testing.T) {
-	n := NewNode()
-	n.Parent = n
+	hasSelfAsParent := NewNode()
+	hasSelfAsParent.Parent = hasSelfAsParent
+	hasSelfAsChild := NewNode()
+	hasSelfAsChild.Children = []*Node{hasSelfAsChild}
+	hasOrphanedChild := NewNode()
+	hasOrphanedChild.Children = []*Node{NewNode()}
 
 	tests := []struct {
 		in  *Node
@@ -123,7 +127,9 @@ func TestNodeIsValid(t *testing.T) {
 	}{
 		{nil, false},
 		{&Node{}, false},
-		{n, false}, // parent is self
+		{hasSelfAsParent, false},
+		{hasSelfAsChild, false},
+		{hasOrphanedChild, false},
 		{
 			&Node{
 				Children: []*Node{
@@ -340,7 +346,7 @@ func TestNodeDepth(t *testing.T) {
 	}
 }
 
-func TestTreeIsValid(t *testing.T) {
+func TestNodeIsTreeValid(t *testing.T) {
 	h1 := NewNode()
 	h1.NewChild().SetPhrase("test")
 
@@ -363,7 +369,7 @@ func TestTreeIsValid(t *testing.T) {
 
 	for i, tt := range tests {
 		msg := fmt.Sprintf("Test case (%d) %#v fails", i, tt)
-		actual := tt.in.IsValid()
+		actual := tt.in.IsTreeValid()
 		assert.Equal(t, tt.out, actual, msg)
 	}
 

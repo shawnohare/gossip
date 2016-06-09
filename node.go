@@ -26,14 +26,13 @@ func (n *Node) IsLeaf() bool {
 	return len(n.Children) == 0
 }
 
-// IsValid recursively determines if every node is valid.
+// IsValid determines if the instance node is valid.
 // Conditions that lead to an invalid node are:
 // - The instance is nil.
 // - The instance is its own parent or contains itself as a child.
 // - The instance's verb is not one of the constants Must, Should, MustNot.
 // - The instance is a leaf with an empty phrase.
 // - The instance is a non-leaf but contains a phrase.
-// - Any child is invalid.
 func (n *Node) IsValid() bool {
 	if n == nil {
 		return false
@@ -57,7 +56,28 @@ func (n *Node) IsValid() bool {
 	}
 
 	for _, child := range n.GetChildren() {
-		if !child.IsValid() || child == n || child.Parent != n {
+		if child == n || child.Parent != n {
+			return false
+		}
+	}
+	return true
+}
+
+// IsTreeValid recursively determines if every node in the subtree
+// defined by the instance is valid.
+// Conditions that lead to an invalid node are:
+// - The instance is nil.
+// - The instance is its own parent or contains itself as a child.
+// - The instance's verb is not one of the constants Must, Should, MustNot.
+// - The instance is a leaf with an empty phrase.
+// - The instance is a non-leaf but contains a phrase.
+// - Any child is invalid.
+func (n *Node) IsTreeValid() bool {
+	if !n.IsValid() {
+		return false
+	}
+	for _, child := range n.GetChildren() {
+		if !child.IsValid() {
 			return false
 		}
 	}
