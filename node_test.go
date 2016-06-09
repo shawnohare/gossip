@@ -15,14 +15,14 @@ func TestNodeMethodsForNil(t *testing.T) {
 	assert.Equal(t, "", n.String())
 	assert.Nil(t, n.Root())
 	assert.Len(t, n.Leaves(), 0)
-	assert.False(t, n.IsLeaf())
+	assert.True(t, n.IsLeaf())
 	assert.Equal(t, VerbError, n.GetVerb())
 	assert.Len(t, n.GetChildren(), 0)
 	assert.Equal(t, "", n.GetPhrase())
 	assert.Equal(t, 0, n.Depth())
 	assert.Nil(t, n.GetParent())
 	assert.NotNil(t, n.AddChild(&Node{}))
-	assert.Nil(t, n.AddChild(nil))
+	assert.NotNil(t, n.AddChild(nil))
 	assert.Nil(t, n.NewChild())
 	assert.NotNil(t, n.SetParent(nil))
 	assert.NotNil(t, n.SetParent(NewNode()))
@@ -53,12 +53,11 @@ func TestNodeIsLeafAfterAdds(t *testing.T) {
 		in  *Node
 		out bool
 	}{
-		{nil, false},
+		{nil, true},
 		{NewNode(), true},
 		{NewNode().NewChild().GetParent(), false},
-		{NewNode().AddChild(NewNode()).GetParent(), false},
-		// AddChild(nil) is nil, so its parent is also nil, hence not a leaf.
-		{NewNode().AddChild(nil).GetParent(), false},
+		{NewNode().AddChild(NewNode()).GetParent(), true}, //
+		{NewNode().AddChild(nil).GetParent(), true},
 	}
 
 	for i, tt := range tests {

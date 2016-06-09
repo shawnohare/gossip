@@ -17,11 +17,11 @@ type Node struct {
 	Phrase   string  `json:"phrase,omitempty"` // Phrase literal if this query is a leaf.
 }
 
-// IsLeaf reports whether the node is a leaf.
-// Nil instances are not considered leaves.
+// IsLeaf reports whether the node is a leaf, which is equivalent to whether
+// its Children slice is empty.  Nil instances are vacuously leaves.
 func (n *Node) IsLeaf() bool {
 	if n == nil {
-		return false
+		return true
 	}
 	return len(n.Children) == 0
 }
@@ -187,14 +187,15 @@ func (n *Node) Depth() int {
 
 // AddChild specifies that the input should be a child of the instance.
 // This appends a new node to the instance's children, sets the instance
-// to be the parent of that child, and returns the child. A nil input
-// is ignored.
+// to be the parent of that child, and returns the child.  If the input is nil,
+// a new Node is initialized.  Note that the instance cannot be added
+// to itself as a child.
 func (n *Node) AddChild(child *Node) *Node {
-	if child == nil {
-		return n
-	}
 	if n == nil {
 		n = NewNode()
+	}
+	if child == nil {
+		child = NewNode()
 	}
 
 	// Do not add the instance to itself.
@@ -270,7 +271,11 @@ func leaves(remaining []*Node, current []*Node) []*Node {
 }
 
 // Leaves returns all external nodes of the subtree defined by the node.
+// A nil instance is considered to be an empty tree, with no leaves.
 func (n *Node) Leaves() []*Node {
+	if n == nil {
+		return nil
+	}
 	if n.IsLeaf() {
 		return []*Node{n}
 	}
