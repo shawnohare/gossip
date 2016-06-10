@@ -1,12 +1,16 @@
 package gossip
 
+import (
+	"errors"
+)
+
 type Verb rune
 
 // Modal verbs.
 const (
 	VerbError Verb = Verb(-2)
 	Should    Verb = Verb(Tilde)
-	MustNot   Verb = Verb(Minus)
+	Not       Verb = Verb(Minus)
 	Must      Verb = Verb(Plus)
 )
 
@@ -14,30 +18,39 @@ const (
 const (
 	VerbErrorString string = "_error"
 	ShouldString    string = "~"
-	MustNotString   string = "-"
+	NotString       string = "-"
 	MustString      string = "+"
 )
 
 // Human readable modal verbs.
 const (
-	VerbErrorPretty string = "_error"
-	ShouldPretty    string = "should"
-	MustNotPretty   string = "must not"
-	MustPretty      string = "must"
+	VerbErrorStringPretty string = "_error"
+	ShouldStringPretty    string = "should"
+	NotStringPretty       string = "not"
+	MustStringPretty      string = "must"
 )
 
 var verbStringsForHumans = map[rune]string{
-	rune(Must):      MustPretty,
-	rune(MustNot):   MustNotPretty,
-	rune(Should):    ShouldPretty,
-	rune(VerbError): VerbErrorPretty,
+	rune(Must):      MustStringPretty,
+	rune(Not):       NotStringPretty,
+	rune(Should):    ShouldStringPretty,
+	rune(VerbError): VerbErrorStringPretty,
 }
 
 var verbStrings = map[rune]string{
 	rune(Must):      MustString,
-	rune(MustNot):   MustNotString,
+	rune(Not):       NotString,
 	rune(Should):    ShouldString,
 	rune(VerbError): VerbErrorString,
+}
+
+var verbStringLookup = map[string]Verb{
+	ShouldString:       Should,
+	ShouldStringPretty: Should,
+	NotString:          Not,
+	NotStringPretty:    Not,
+	MustString:         Must,
+	MustStringPretty:   Must,
 }
 
 func (v Verb) String() string {
@@ -51,12 +64,12 @@ func (v Verb) Pretty() string {
 	if vs, ok := verbStringsForHumans[rune(v)]; ok {
 		return vs
 	}
-	return VerbErrorPretty
+	return VerbErrorStringPretty
 }
 
 // IsValid reports whether the instance is a valid modal verb.
 func (v Verb) IsValid() bool {
-	return v == Should || v == Must || v == MustNot
+	return v == Should || v == Must || v == Not
 }
 
 // IsMust reports whether the instance is the modal verb "must".
@@ -66,7 +79,7 @@ func (v Verb) IsMust() bool {
 
 // IsMustNot reports whether the instance is the modal verb "must not".
 func (v Verb) IsMustNot() bool {
-	return v == MustNot
+	return v == Not
 }
 
 // IsShould reports whether the instance is the modal verb "should".
@@ -77,7 +90,7 @@ func (v Verb) IsShould() bool {
 // IsRuneVerb states if the input represents a modal verb such as "must".
 func IsRuneVerb(r rune) bool {
 	v := Verb(r)
-	return v == Should || v == Must || v == MustNot
+	return v == Should || v == Must || v == Not
 }
 
 // IsRuneMust states if the input represents the modal verb "must".
@@ -87,10 +100,20 @@ func IsRuneMust(r rune) bool {
 
 // IsRuneMustNot states if the input represents the modal verb "must not".
 func IsRuneMustNot(r rune) bool {
-	return Verb(r) == MustNot
+	return Verb(r) == Not
 }
 
 // IsRuneShould states if the input represents the modal verb "should".
 func IsRuneShould(r rune) bool {
 	return Verb(r) == Should
+}
+
+// ParseVerbString converts a string representation of a verb into the
+// appropriate Verb instance. If the input string is not a valid Verb,
+// the VerbError Verb instance is returned, along with an error.
+func ParseVerbString(verb string) (Verb, error) {
+	if v, ok := verbStringLookup[verb]; ok {
+		return v, nil
+	}
+	return VerbError, errors.New(ErrorVerbString)
 }

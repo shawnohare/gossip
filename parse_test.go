@@ -69,7 +69,7 @@ func TestParsePasses(t *testing.T) {
 			&Node{
 				Verb: Should,
 				Children: []*Node{
-					{Phrase: "x", Verb: MustNot},
+					{Phrase: "x", Verb: Not},
 					{Phrase: "y", Verb: Must},
 				},
 			},
@@ -86,7 +86,7 @@ func TestParsePasses(t *testing.T) {
 						Verb: Must,
 						Children: []*Node{
 							{Phrase: "y", Verb: Must},
-							{Phrase: "z", Verb: MustNot},
+							{Phrase: "z", Verb: Not},
 						},
 					},
 				},
@@ -104,7 +104,7 @@ func TestParsePasses(t *testing.T) {
 						Verb: Must,
 						Children: []*Node{
 							{Phrase: "y", Verb: Must},
-							{Phrase: "z", Verb: MustNot},
+							{Phrase: "z", Verb: Not},
 						},
 					},
 				},
@@ -124,7 +124,7 @@ func TestParsePasses(t *testing.T) {
 						Verb: Should,
 						Children: []*Node{
 							{Phrase: "phrase 2", Verb: Must},
-							{Phrase: "z", Verb: MustNot},
+							{Phrase: "z", Verb: Not},
 						},
 					},
 				},
@@ -144,7 +144,7 @@ func TestParsePasses(t *testing.T) {
 						Verb: Should,
 						Children: []*Node{
 							{Phrase: "phrase 2", Verb: Must},
-							{Phrase: "z", Verb: MustNot},
+							{Phrase: "z", Verb: Not},
 						},
 					},
 				},

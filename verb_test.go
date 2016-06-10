@@ -18,10 +18,10 @@ func TestVerbIsX(t *testing.T) {
 	assert.False(t, Should.IsMustNot())
 	assert.True(t, Should.IsShould())
 
-	assert.True(t, MustNot.IsValid())
-	assert.False(t, MustNot.IsMust())
-	assert.True(t, MustNot.IsMustNot())
-	assert.False(t, MustNot.IsShould())
+	assert.True(t, Not.IsValid())
+	assert.False(t, Not.IsMust())
+	assert.True(t, Not.IsMustNot())
+	assert.False(t, Not.IsShould())
 
 	assert.False(t, Verb(-93).IsValid())
 	assert.False(t, Verb(-93).IsMust())
@@ -39,7 +39,7 @@ func TestIsVerb(t *testing.T) {
 		{rune(VerbError), false},
 		{rune(Must), true},
 		{rune(Should), true},
-		{rune(MustNot), true},
+		{rune(Not), true},
 	}
 
 	for i, tt := range tests {
@@ -58,7 +58,7 @@ func TestIsMust(t *testing.T) {
 		{rune(VerbError), false},
 		{rune(Must), true},
 		{rune(Should), false},
-		{rune(MustNot), false},
+		{rune(Not), false},
 	}
 
 	for i, tt := range tests {
@@ -77,7 +77,7 @@ func TestIsMustNot(t *testing.T) {
 		{rune(VerbError), false},
 		{rune(Must), false},
 		{rune(Should), false},
-		{rune(MustNot), true},
+		{rune(Not), true},
 	}
 
 	for i, tt := range tests {
@@ -96,7 +96,7 @@ func TestIsShould(t *testing.T) {
 		{rune(VerbError), false},
 		{rune(Must), false},
 		{rune(Should), true},
-		{rune(MustNot), false},
+		{rune(Not), false},
 	}
 
 	for i, tt := range tests {
@@ -112,7 +112,7 @@ func TestVerbString(t *testing.T) {
 	}{
 		{Must, MustString},
 		{Should, ShouldString},
-		{MustNot, MustNotString},
+		{Not, NotString},
 		{VerbError, VerbErrorString},
 		{999, VerbErrorString},
 	}
@@ -129,11 +129,11 @@ func TestVerbPretty(t *testing.T) {
 		in  Verb
 		out string
 	}{
-		{Must, MustPretty},
-		{Should, ShouldPretty},
-		{MustNot, MustNotPretty},
-		{VerbError, VerbErrorPretty},
-		{999, VerbErrorPretty},
+		{Must, MustStringPretty},
+		{Should, ShouldStringPretty},
+		{Not, NotStringPretty},
+		{VerbError, VerbErrorStringPretty},
+		{999, VerbErrorStringPretty},
 	}
 
 	for i, tt := range tests {
@@ -141,4 +141,37 @@ func TestVerbPretty(t *testing.T) {
 		assert.Equal(t, tt.out, tt.in.Pretty(), msg)
 	}
 
+}
+
+func TestParseVerbString(t *testing.T) {
+	fails := []string{
+		"",
+		"a",
+		"_error",
+	}
+
+	for _, tt := range fails {
+		v, err := ParseVerbString(tt)
+		assert.Equal(t, VerbError, v)
+		assert.Error(t, err)
+	}
+
+	passes := []struct {
+		in  string
+		out Verb
+	}{
+		{MustString, Must},
+		{MustStringPretty, Must},
+		{ShouldString, Should},
+		{ShouldStringPretty, Should},
+		{NotString, Not},
+		{NotStringPretty, Not},
+	}
+
+	for _, tt := range passes {
+		v, err := ParseVerbString(tt.in)
+		assert.NoError(t, err)
+		assert.Equal(t, tt.out, v)
+
+	}
 }

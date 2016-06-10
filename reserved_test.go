@@ -21,7 +21,7 @@ func TestNextReservedRune(t *testing.T) {
 		{"0]2", SubqueryEnd, 1},
 		{`0"`, PhraseDelim, 1},
 		{`0+"567+"`, rune(Must), 1},
-		{`0-"567+"`, rune(MustNot), 1},
+		{`0-"567+"`, rune(Not), 1},
 		{`0123 "`, Space, 4},
 	}
 
@@ -54,7 +54,7 @@ func TestCheckReservedSingleton(t *testing.T) {
 		out bool
 	}{
 		{rune(Must), false},
-		{rune(MustNot), false},
+		{rune(Not), false},
 		{PhraseDelim, false},
 		{SubqueryStart, false},
 		{SubqueryEnd, false},
@@ -81,7 +81,7 @@ func TestIsValidPair(t *testing.T) {
 	}{
 		// current = plus
 		{rune(Must), rune(Must), false},
-		{rune(MustNot), rune(Must), false},
+		{rune(Not), rune(Must), false},
 		{PhraseDelim, rune(Must), true},
 		{SubqueryStart, rune(Must), true},
 		{SubqueryEnd, rune(Must), false},
@@ -89,17 +89,17 @@ func TestIsValidPair(t *testing.T) {
 		{e, rune(Must), true},
 		{a, rune(Must), false},
 		// current = minus
-		{rune(Must), rune(MustNot), false},
-		{rune(MustNot), rune(MustNot), false},
-		{PhraseDelim, rune(MustNot), true},
-		{SubqueryStart, rune(MustNot), true},
-		{SubqueryEnd, rune(MustNot), false},
-		{Space, rune(MustNot), true},
-		{e, rune(MustNot), true},
-		{a, rune(MustNot), false},
+		{rune(Must), rune(Not), false},
+		{rune(Not), rune(Not), false},
+		{PhraseDelim, rune(Not), true},
+		{SubqueryStart, rune(Not), true},
+		{SubqueryEnd, rune(Not), false},
+		{Space, rune(Not), true},
+		{e, rune(Not), true},
+		{a, rune(Not), false},
 		// current = quote
 		{rune(Must), PhraseDelim, true},
-		{rune(MustNot), PhraseDelim, true},
+		{rune(Not), PhraseDelim, true},
 		{PhraseDelim, PhraseDelim, true},
 		{SubqueryStart, PhraseDelim, true},
 		{SubqueryEnd, PhraseDelim, false},
@@ -108,7 +108,7 @@ func TestIsValidPair(t *testing.T) {
 		{a, PhraseDelim, false},
 		// current = subquery start
 		{rune(Must), SubqueryStart, true},
-		{rune(MustNot), SubqueryStart, true},
+		{rune(Not), SubqueryStart, true},
 		{PhraseDelim, SubqueryStart, true},
 		{SubqueryStart, SubqueryStart, true},
 		{SubqueryEnd, SubqueryStart, false},
@@ -117,7 +117,7 @@ func TestIsValidPair(t *testing.T) {
 		{a, SubqueryStart, false},
 		// current =Subuery end
 		{rune(Must), SubqueryEnd, false},
-		{rune(MustNot), SubqueryEnd, false},
+		{rune(Not), SubqueryEnd, false},
 		{PhraseDelim, SubqueryEnd, true},
 		{SubqueryStart, SubqueryEnd, true},
 		{SubqueryEnd, SubqueryEnd, true},
@@ -126,7 +126,7 @@ func TestIsValidPair(t *testing.T) {
 		{a, SubqueryEnd, true},
 		// current = space
 		{rune(Must), Space, false},
-		{rune(MustNot), Space, false},
+		{rune(Not), Space, false},
 		{PhraseDelim, Space, true},
 		{SubqueryStart, Space, true},
 		{SubqueryEnd, Space, true},
@@ -135,7 +135,7 @@ func TestIsValidPair(t *testing.T) {
 		{a, Space, true},
 		// non-reserved
 		{rune(Must), a, true},
-		{rune(MustNot), a, true},
+		{rune(Not), a, true},
 		{PhraseDelim, a, true},
 		{SubqueryStart, a, true},
 		{SubqueryEnd, a, false},
@@ -144,7 +144,7 @@ func TestIsValidPair(t *testing.T) {
 		{a, a, true},
 		// Last
 		{rune(Must), e, false},
-		{rune(MustNot), e, false},
+		{rune(Not), e, false},
 		{PhraseDelim, e, true},
 		{SubqueryStart, e, false},
 		{SubqueryEnd, e, true},
@@ -173,7 +173,7 @@ func TestValidTriple(t *testing.T) {
 	}{
 		// Modal verbs
 		{rune(Must), rune(Must), a, false},
-		{rune(MustNot), rune(Must), a, false},
+		{rune(Not), rune(Must), a, false},
 		{rune(Should), rune(Must), a, false},
 		{SubqueryEnd, rune(Must), a, false},
 		{Space, rune(Must), Space, false},
@@ -181,7 +181,7 @@ func TestValidTriple(t *testing.T) {
 		{Space, rune(Must), e, false},
 		{e, rune(Must), e, false},
 		{Space, rune(Must), rune(Must), false},
-		{Space, rune(Must), rune(MustNot), false},
+		{Space, rune(Must), rune(Not), false},
 		{Space, rune(Must), rune(Should), false},
 		{PhraseDelim, rune(Must), a, true},
 		{SubqueryStart, rune(Must), a, true},

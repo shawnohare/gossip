@@ -76,7 +76,7 @@ func TestNodeVerb(t *testing.T) {
 		{&Node{}, 0},
 		{&Node{Verb: Must}, Must},
 		{&Node{Verb: Should}, Should},
-		{&Node{Verb: MustNot}, MustNot},
+		{&Node{Verb: Not}, Not},
 		{&Node{Verb: VerbError}, VerbError},
 	}
 
@@ -174,7 +174,7 @@ func TestNodeEquals(t *testing.T) {
 		{NewNode(), &Node{Phrase: "x", Verb: Should}, false},
 		{&Node{Phrase: "x", Verb: Should}, &Node{Phrase: "y", Verb: Should}, false},
 		{&Node{Verb: Must, Phrase: "x"}, &Node{Verb: Should, Phrase: "x"}, false},
-		{&Node{Verb: Must, Phrase: "x"}, &Node{Verb: MustNot, Phrase: "x"}, false},
+		{&Node{Verb: Must, Phrase: "x"}, &Node{Verb: Not, Phrase: "x"}, false},
 		{&Node{Phrase: "x", Verb: Should}, &Node{Phrase: "x", Verb: Should}, true},
 		// 9. Basic test with children.
 		{
@@ -426,7 +426,7 @@ func TestNodeString(t *testing.T) {
 	c1.NewChild().SetPhrase("y")
 	c2 := h3.NewChild()
 	c2.NewChild().SetPhrase("v").SetVerb(Must)
-	c2.NewChild().SetPhrase("w").SetVerb(MustNot)
+	c2.NewChild().SetPhrase("w").SetVerb(Not)
 
 	tests := []struct {
 		in  *Node
